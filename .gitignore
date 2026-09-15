@@ -1,0 +1,32 @@
+.env.local
+.ai-cad.pid
+logs/*.log
+
+# Local runtimes and generated CAD outputs
+.venv-cadquery/
+node_modules/
+pretraining-data/
+.worktrees/
+assemblies/
+renders/
+workspace/
+transfers/
+private-backup/
+standard-parts-cache/
+tire_render/
+public/*.visual-check.*
+aicad建模反馈/
+aicad训练记录/
+aicad-fbs-experiments/
+cadquery底层脚本库/
+aicad人工评分/
+人工优秀代码库/
+
+# Local editor/agent state
+.vscode/
+.agents/
+.codex/
+
+# Python caches
+__pycache__/
+*.pyc

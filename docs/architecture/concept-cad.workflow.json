@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "AI-CAD 统一 Concept-CAD 工程链路",
+    "output": "../../public/concept-cad-workflow.html",
+    "quality_profile": "showcase",
+    "viewBox": [1180, 650],
+    "views": [
+      { "id": "main_flow", "label": "主建模链路", "focus": ["request", "chat", "contract", "parametric", "brep", "validation", "delivery"], "note": "一次 AI 调用同时形成概念链路和参数化 CAD 计划。" },
+      { "id": "repair_flow", "label": "验证修复闭环", "focus": ["brep", "validation", "repair", "parametric", "delivery"], "note": "阻断错误回到参数化计划修复，通过验证后才晋升。" },
+      { "id": "stop_flow", "label": "停止与隔离", "focus": ["chat", "cancel"], "note": "用户停止当前请求，迟到结果不得覆盖当前模型。" }
+    ]
+  },
+  "lanes": [
+    { "id": "interaction", "label": "工程输入与控制" },
+    { "id": "planning", "label": "统一概念与规划" },
+    { "id": "geometry", "label": "参数化几何" },
+    { "id": "quality", "label": "验证、修复与交付", "variant": "exception" }
+  ],
+  "phases": [
+    { "id": "intake", "label": "需求", "fromCol": 0, "toCol": 1 },
+    { "id": "concept_plan", "label": "Concept-CAD", "fromCol": 2, "toCol": 2, "variant": "emphasis" },
+    { "id": "build", "label": "构建", "fromCol": 3, "toCol": 3 },
+    { "id": "verify", "label": "验证与晋升", "fromCol": 4, "toCol": 4, "variant": "security" },
+    { "id": "handoff", "label": "交付", "fromCol": 5, "toCol": 5, "variant": "dashed" }
+  ],
+  "groups": [
+    { "id": "single_contract", "label": "一次 AI 调用 · 一个统一合同", "lane": "planning", "fromCol": 1, "toCol": 2, "variant": "emphasis" },
+    { "id": "validated_revision", "label": "候选修订门禁", "lane": "quality", "fromCol": 3, "toCol": 5, "variant": "security" }
+  ],
+  "mainPath": ["request", "chat", "contract", "parametric", "brep", "validation", "delivery"],
+  "nodes": [
+    { "id": "request", "lane": "interaction", "col": 0, "type": "external", "label": "工程需求", "sublabel": "对象 · 尺寸", "width": 84 },
+    { "id": "chat", "lane": "interaction", "col": 1, "type": "frontend", "label": "工程工作台", "sublabel": "输入 · 流程状态 · 停止" },
+    { "id": "contract", "lane": "planning", "col": 2, "type": "backend", "label": "统一概念合同", "sublabel": "R→F→Be→S + CAD", "tag": "一次 AI 调用", "width": 112 },
+    { "id": "parametric", "lane": "geometry", "col": 2, "type": "backend", "label": "参数化计划", "sublabel": "零件 · 特征 · 测量", "width": 100 },
+    { "id": "brep", "lane": "geometry", "col": 3, "type": "backend", "label": "BREP 构建", "sublabel": "CadQuery / OCCT", "width": 100 },
+    { "id": "validation", "lane": "quality", "col": 3, "type": "security", "label": "工程验证门", "sublabel": "尺寸 · 干涉 · 制造性", "width": 80 },
+    { "id": "delivery", "lane": "quality", "col": 5, "type": "cloud", "label": "已验证交付", "sublabel": "STEP · FCStd · STL/GLB", "width": 100 },
+    { "id": "cancel", "lane": "interaction", "col": 5, "type": "security", "label": "停止任务", "sublabel": "中止 · 禁止覆盖", "width": 84 },
+    { "id": "repair", "lane": "quality", "col": 1, "type": "messagebus", "label": "最小修复", "sublabel": "按阻断证据回改计划", "width": 100 }
+  ],
+  "edges": [
+    { "id": "request_to_chat", "from": "request", "to": "chat", "role": "main", "variant": "emphasis", "route": "straight" },
+    { "id": "chat_to_contract", "from": "chat", "to": "contract", "role": "main", "variant": "emphasis" },
+    { "id": "contract_to_parametric", "from": "contract", "to": "parametric", "role": "main" },
+    { "id": "parametric_to_brep", "from": "parametric", "to": "brep", "role": "main", "route": "straight" },
+    { "id": "brep_to_validation", "from": "brep", "to": "validation", "role": "main", "variant": "security", "fromSide": "bottom", "toSide": "top", "route": "drop" },
+    { "id": "validation_to_delivery", "from": "validation", "to": "delivery", "role": "main", "variant": "emphasis", "route": "straight" },
+    { "id": "chat_to_cancel", "from": "chat", "to": "cancel", "role": "error", "variant": "security", "route": "straight" },
+    { "id": "validation_to_repair", "from": "validation", "to": "repair", "role": "error", "variant": "security", "route": "straight" },
+    { "id": "repair_to_parametric", "from": "repair", "to": "parametric", "role": "return", "variant": "dashed", "fromSide": "top", "toSide": "bottom", "route": "drop" }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "已剔除的重复", "items": ["删除独立 FBS AI 调用", "删除 F / Be / S 逐阶段重复推导", "删除第二份概念规划结果"] },
+    { "dot": "emerald", "title": "统一合同", "items": ["当前用户输入是唯一主需求", "同一 JSON 同时包含概念链和 CAD 计划", "latent/VAE 只作为后台规划先验"] },
+    { "dot": "amber", "title": "工程门禁与学习", "items": ["BREP/STEP 几何证据优先", "阻断错误触发最小修复", "验证通过后入队训练并版本化"] }
+  ]
+}

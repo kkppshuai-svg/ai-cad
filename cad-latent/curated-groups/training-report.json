@@ -1,0 +1,52 @@
+{
+  "format": "ai-cad-curated-training-report-v1",
+  "trainedAt": "2026-08-10T14:00:00.000Z",
+  "groups": {
+    "parametric_mechanical": {
+      "capability": "参数化机械支架、孔槽局部编辑、齿轮参数结构检索",
+      "sampleCount": 2,
+      "structureModel": "parametric_mechanical_structure_model.json",
+      "structureMetrics": {
+        "latentDim": 2,
+        "tokenCount": 32,
+        "reconstructionMse": 9.116997580160472e-32
+      },
+      "brepModel": "parametric_mechanical_brep_model.json",
+      "brepMetrics": {
+        "sampleCount": 2,
+        "reconstructionMse": 0.18702141428369765,
+        "klLoss": 1.499329888599626,
+        "validationLoss": 0.36345722133044334
+      },
+      "verification": "NEMA23 query ranks curated NEMA23 sample first; its STEP self-match distance is below 1e-15"
+    },
+    "manufacturing_features": {
+      "capability": "齿轮轴、轴承段、键槽、圆角和重复孔特征检索",
+      "sampleCount": 2,
+      "structureModel": "manufacturing_features_structure_model.json",
+      "structureMetrics": {
+        "latentDim": 2,
+        "tokenCount": 25,
+        "reconstructionMse": 1.3995919286179242e-31
+      },
+      "brepModel": "manufacturing_features_brep_model.json",
+      "brepMetrics": {
+        "sampleCount": 2,
+        "reconstructionMse": 0.24337709204289878,
+        "klLoss": 1.4991494442476156,
+        "validationLoss": 0.4617037000389296
+      },
+      "verification": "Gear-shaft query ranks the 160 mm gear shaft first; its STEP self-match distance is below 1e-15"
+    }
+  },
+  "mainModels": {
+    "structureModel": "../model.json",
+    "structureSampleCount": 28,
+    "structureReconstructionMse": 0.022485365589028316,
+    "brepModel": "../brep_vae_model.json",
+    "brepSampleCount": 12,
+    "brepReconstructionMse": 0.10087049588782657,
+    "brepValidationLoss": 0.4732293002731941,
+    "verification": "Main structure and BREP queries both rank the curated NEMA23 sample first"
+  }
+}

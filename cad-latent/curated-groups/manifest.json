@@ -1,0 +1,48 @@
+{
+  "format": "ai-cad-curated-training-groups-v1",
+  "createdAt": "2026-08-10T14:01:42.755Z",
+  "groups": {
+    "parametric_mechanical": {
+      "sampleCount": 2,
+      "dataset": "/home/kkk/ai-cad/cad-latent/curated-groups/parametric_mechanical.jsonl",
+      "samples": [
+        {
+          "id": "curated-2026-08-10-nema23-l-bracket",
+          "name": "nema23-l",
+          "assemblyId": "1786362889802-nema23-l-f5873f9d",
+          "stepPath": "/home/kkk/ai-cad/assemblies/1786362889802-nema23-l-f5873f9d/revisions/rev-0004/artifacts/assembly.step",
+          "score": 100
+        },
+        {
+          "id": "2026-07-28T09-10-27-988Z-100-1785220767403-10-c966bcbb",
+          "name": "external_spur_gear_pair",
+          "assemblyId": "1785220767403-10-c966bcbb",
+          "stepPath": "/home/kkk/ai-cad/assemblies/1785220767403-10-c966bcbb/assembly.step",
+          "score": 100
+        }
+      ]
+    },
+    "manufacturing_features": {
+      "sampleCount": 2,
+      "dataset": "/home/kkk/ai-cad/cad-latent/curated-groups/manufacturing_features.jsonl",
+      "samples": [
+        {
+          "id": "2026-08-08T02-38-55-986Z-100-1786155623561-160mm-7e374289",
+          "name": "160mm",
+          "assemblyId": "1786155623561-160mm-7e374289",
+          "stepPath": "/home/kkk/ai-cad/assemblies/1786155623561-160mm-7e374289/assembly.step",
+          "score": 100
+        },
+        {
+          "id": "2026-06-14T05-31-14-749Z-100-1781415023056-simple_rounded_die-48619228",
+          "name": "simple_rounded_die",
+          "assemblyId": "1781415023056-simple_rounded_die-48619228",
+          "stepPath": "/home/kkk/ai-cad/assemblies/1781415023056-simple_rounded_die-48619228/assembly.step",
+          "score": 100
+        }
+      ]
+    }
+  },
+  "trainingDataset": "/home/kkk/ai-cad/cad-latent/training_samples.jsonl",
+  "totalAddedOrUpdated": 4
+}

@@ -1,0 +1,11 @@
+{
+  "format": "ai-cad-latent-dataset-v1",
+  "sampleCount": 28,
+  "datasetFile": "training_samples.jsonl",
+  "createdAt": "2026-08-10T14:01:42.759Z",
+  "tokenCount": 373,
+  "curatedGroups": [
+    "parametric_mechanical",
+    "manufacturing_features"
+  ]
+}

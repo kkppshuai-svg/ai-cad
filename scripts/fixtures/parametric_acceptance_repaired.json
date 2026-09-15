@@ -1,0 +1,29 @@
+{
+  "name": "parametric_acceptance_repaired",
+  "outputDir": "/tmp/aicad-parametric-repaired",
+  "parts": [
+    {
+      "id": "left_bracket",
+      "name": "左支架",
+      "pose": { "translate": [-10, 0, 0], "rotate": [0, 0, 0] },
+      "featureTree": [
+        { "id": "left_bracket.base.01", "type": "base_box", "enabled": true, "dependsOn": [], "params": { "size": [20, 20, 6] } },
+        { "id": "left_bracket.hole.01", "type": "hole", "enabled": true, "dependsOn": ["left_bracket.base.01"], "params": { "diameter": 4, "depth": 10, "axis": "z", "center": [-6, 0, 0] } },
+        { "id": "left_bracket.linear_pattern.01", "type": "linear_pattern", "enabled": true, "dependsOn": ["left_bracket.hole.01"], "params": { "sourceFeatureId": "left_bracket.hole.01", "count": 3, "spacing": 6, "direction": [1, 0, 0] } }
+      ]
+    },
+    {
+      "id": "right_bracket",
+      "name": "右支架",
+      "pose": { "translate": [15, 0, 0], "rotate": [0, 0, 0] },
+      "reuseStepPath": "/tmp/aicad-parametric-overlap/right_bracket.local.step",
+      "featureTree": [
+        { "id": "right_bracket.base.01", "type": "base_box", "enabled": true, "dependsOn": [], "params": { "size": [20, 20, 6] } }
+      ]
+    }
+  ],
+  "constraints": [
+    { "id": "fix-left", "type": "fixed", "to": { "partId": "left_bracket" } },
+    { "id": "slide-right", "type": "slider", "from": { "partId": "left_bracket" }, "to": { "partId": "right_bracket" }, "axis": [1, 0, 0], "limit": { "lower": 0, "upper": 50 } }
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "format": "ai-cad-brep-pretraining-experiment-v1",
+  "date": "2026-07-12",
+  "backupTag": "backup/brep-vae-editable-assembly-20260712",
+  "externalDataset": {
+    "name": "DeepCAD",
+    "officialSplit": "train",
+    "seed": 42,
+    "selectedCount": 100,
+    "convertedStepCount": 100,
+    "failureCount": 0,
+    "rawDataTrackedByGit": false
+  },
+  "architecture": {
+    "inputDim": 44,
+    "hiddenDim": 48,
+    "latentDim": 6,
+    "transferPolicy": "transfer latent bottleneck weights; reinitialize domain-specific encoder input and decoder output layers"
+  },
+  "results": {
+    "localOnly": {
+      "sampleCount": 8,
+      "reconstructionMse": 0.3452042086997483,
+      "klLoss": 1.7077381998180836,
+      "validationLoss": 0.5000266736132312
+    },
+    "deepCadPretraining": {
+      "sampleCount": 100,
+      "reconstructionMse": 0.07035350204238584,
+      "klLoss": 3.220706887505879,
+      "validationLoss": 0.3140627767542861
+    },
+    "localFineTune": {
+      "sampleCount": 8,
+      "reconstructionMse": 0.21085450920504945,
+      "klLoss": 2.0855838665348423,
+      "validationLoss": 0.6181375468789297,
+      "reconstructionMseImprovementPercent": 38.918906
+    }
+  },
+  "interpretation": "The reconstruction result is promising, but the local validation set contains only one sample and is too small for a reliable generalization claim. Expand domain data before promoting this model to production."
+}

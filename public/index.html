@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>AI CAD Parametric Modeling Studio</title>
+    <link rel="stylesheet" href="/styles.css?v=fitness-workspace">
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "/vendor/three/three.module.js",
+          "three/addons/": "/vendor/three/addons/"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <main class="shell">
+      <header class="app-header hero">
+        <div class="brand-block">
+          <div class="brand-mark" aria-hidden="true"><span></span><span></span></div>
+          <div>
+            <p class="eyebrow">AICAD / PARAMETRIC MODELING</p>
+            <h1>AI CAD 工程工作台</h1>
+            <p class="lead">以参数化特征计划和 VAE/latent 学习为核心，优先提高零件建模的准确性、稳定性与可修改性，再输出 STEP、FCStd 和预览模型。</p>
+          </div>
+        </div>
+        <div class="status-card status-indicator">
+          <small class="status-label">SYSTEM STATUS</small>
+          <span id="engineStatus">连接中...</span>
+          <small>支持继续对话修改尺寸、孔槽、特征与零件结构</small>
+          <small id="latentStatus">latent/VAE：后台学习初始化中...</small>
+          <a class="architecture-link" href="/architecture.html">打开交互架构图</a>
+          <a class="architecture-link" href="/concept-cad-workflow.html">打开 Concept-CAD 链路图</a>
+        </div>
+      </header>
+
+      <section class="studio assembly-studio">
+        <aside class="panel chat-panel">
+          <div class="panel-head">
+            <div>
+              <span class="workspace-kicker">01 / GENERATE</span>
+              <label>建模对话</label>
+            </div>
+            <button id="resetChatBtn" class="ghost">新会话</button>
+          </div>
+          <section class="fbs-engineering" aria-label="FBS 工程分析链路">
+            <div class="fbs-engineering-head">
+              <div><span class="workspace-kicker">CONCEPT / FBS TRACE</span><strong>需求到结构</strong></div>
+              <div id="fsbStatus" class="fsb-status">发送需求后自动分析</div>
+            </div>
+            <div class="fbs-trace" aria-label="需求、功能、行为、结构链路">
+              <article class="fbs-trace-node is-requirement"><span>R</span><small>需求</small><div id="fbsRequirementSummary">等待工程需求</div></article>
+              <article class="fbs-trace-node"><span>F</span><small>功能</small><div id="fbsFunctionSummary">待分析</div></article>
+              <article class="fbs-trace-node"><span>Be</span><small>行为</small><div id="fbsBehaviorSummary">待分析</div></article>
+              <article class="fbs-trace-node is-structure"><span>S</span><small>结构</small><div id="fbsStructureSummary">待分析</div></article>
+            </div>
+            <div class="fbs-acceptance"><span>验收指标</span><div id="fbsCriteriaSummary">等待可测量标准</div></div>
+            <details class="fbs-review"><summary>研发证据 · 查看统一 Concept-CAD 合同</summary><div class="fbs-review-body"><button id="fsbClear" class="ghost" type="button">清空事件</button><pre id="fsbSnapshot" class="fsb-snapshot"></pre><div id="fsbEvents" class="fsb-events"></div></div></details>
+          </section>
+          <section class="process-trace" aria-label="建模流程状态">
+            <div class="process-trace-head"><span class="workspace-kicker">PIPELINE / LIVE</span><strong>建模流程</strong><span id="processTraceStatus">等待输入</span></div>
+            <ol id="processTrace" class="process-trace-list">
+              <li data-stage="request"><b>01</b><span>需求</span><small>等待输入</small></li>
+              <li data-stage="fbs"><b>02</b><span>概念 → CAD 规划</span><small>等待</small></li>
+              <li data-stage="build"><b>03</b><span>BREP 构建</span><small>等待</small></li>
+              <li data-stage="validate"><b>04</b><span>验证</span><small>等待</small></li>
+              <li data-stage="deliver"><b>05</b><span>交付</span><small>等待</small></li>
+            </ol>
+          </section>
+          <div id="chatHistory" class="chat-history"></div>
+          <div class="search-panel">
+            <label class="toggle-row">
+              <input id="webSearchEnabled" type="checkbox">
+              <span>联网搜索 CadQuery 代码参考</span>
+            </label>
+            <input id="webSearchQuery" type="search" placeholder="留空则搜索 CadQuery Python 建模代码示例">
+            <div id="searchResults" class="search-results"></div>
+          </div>
+          <section class="training-panel">
+            <div class="training-head">
+              <label class="toggle-row">
+                <input id="trainingModeEnabled" type="checkbox">
+                <span>训练模式</span>
+              </label>
+              <button id="trainingStopBtn" class="ghost" type="button" hidden disabled>停止</button>
+            </div>
+            <small>自动执行：生成 → 视觉审查 → 局部改进 → 再审查；最多自动改进 6 轮，可随时停止。</small>
+            <div id="trainingStatus" class="training-status">未启动</div>
+          </section>
+          <form id="chatForm" class="chat-form">
+            <textarea id="chatInput" rows="5" placeholder="例如：做一个 100x60x6 mm 的电机安装底板，四角 M4 通孔，中心开 42 mm 定位孔，边缘倒角 1 mm。也可以附上参考图片。"></textarea>
+            <div id="chatImagePreview" class="chat-image-preview"></div>
+            <div class="chat-form-actions">
+              <input id="chatImageInput" type="file" accept="image/png,image/jpeg,image/webp" multiple hidden>
+              <button id="attachImageBtn" class="ghost" type="button" title="附加参考图片，AI 会识别图片并建模">📷 参考图</button>
+              <button id="cancelChatBtn" class="ghost" type="button" hidden>停止当前任务</button><button id="sendChatBtn" class="primary" type="submit">发送并生成模型</button>
+            </div>
+          </form>
+          <div class="workflow">
+            <h2>流程</h2>
+            <ol>
+              <li>从文字或参考图提取尺寸与功能特征。</li>
+              <li>生成稳定的参数化特征计划。</li>
+              <li>CadQuery 构建 BREP，并检查几何与制造风险。</li>
+              <li>用评分与 VAE/latent 学习强化成功结构和失败模式。</li>
+            </ol>
+          </div>
+        </aside>
+
+        <section class="panel editor-panel">
+          <div class="panel-head">
+            <div>
+              <span class="workspace-kicker">02 / FEATURES</span>
+              <label for="code">当前零件 CadQuery 特征 JSON</label>
+              <span id="activePartName">未选择零件</span>
+            </div>
+            <span id="renderState">等待输入</span>
+          </div>
+          <textarea id="code" spellcheck="false"></textarea>
+          <div class="actions inline-actions">
+            <button id="renderBtn">刷新 3D 预览</button>
+            <button id="exportBtn">导出当前预览</button>
+          </div>
+        </section>
+
+        <section class="panel preview-panel">
+          <div class="panel-head">
+            <div>
+              <span class="workspace-kicker">03 / VIEWPORT</span>
+              <label>预览与装配</label>
+              <span id="jobId"></span>
+            </div>
+            <a id="downloadLink" href="#" download hidden>下载当前预览文件</a>
+          </div>
+          <div class="preview-stage">
+            <canvas id="viewer"></canvas>
+            <img id="previewImage" alt="零件或装配预览">
+            <div id="emptyPreview" class="empty">等待生成零件或装配</div>
+            <div class="viewer-overlay">
+              <div id="viewerStats" class="viewer-stats">3D STL 预览</div>
+              <div class="viewer-toolbar">
+                <button id="viewAssemblyBtn" type="button">装配</button>
+                <button id="viewPartBtn" type="button">零件</button>
+                <button id="view3dBtn" type="button">3D</button>
+                <button id="viewFrontBtn" type="button">前视</button>
+                <button id="viewTopBtn" type="button">顶视</button>
+                <button id="viewSideBtn" type="button">侧视</button>
+                <button id="resetViewBtn" type="button">复位</button>
+                <button id="wireframeBtn" type="button">线框</button>
+                <button id="hidePartBtn" type="button">隐藏</button>
+                <button id="isolatePartBtn" type="button">隔离</button>
+                <button id="showAllPartsBtn" type="button">全部显示</button>
+                <button id="ghostModeBtn" type="button">透明查看</button>
+              </div>
+            </div>
+          </div>
+          <div class="assembly-downloads">
+            <a id="fcstdLink" href="#" download hidden>下载 FreeCAD 模型</a>
+            <a id="stepLink" href="#" download hidden>下载 STEP</a>
+            <a id="assemblyStlLink" href="#" download hidden>下载 STL 预览</a>
+            <a id="kinematicPackageLink" href="#" download hidden>下载单体与关系包</a>
+            <a id="constraintsLink" href="#" download hidden>下载约束清单</a>
+            <a id="manifestLink" href="#" download hidden>下载模型清单</a>
+            <button id="visualReviewBtn" type="button" disabled>审查并自动修复</button>
+          </div>
+          <section id="visualReviewPanel" class="visual-review-panel" hidden>
+            <div class="visual-review-head">
+              <h2>视觉审查</h2>
+              <div class="visual-review-actions">
+                <span id="visualReviewStatus">未运行</span>
+                <button id="visualImproveBtn" type="button" hidden disabled>根据反馈改进</button>
+              </div>
+            </div>
+            <p id="visualReviewSummary"></p>
+            <div id="visualAcceptanceStatus" class="visual-acceptance-status">双重验收：等待几何与视觉审查</div>
+            <div id="visualReviewFindings" class="visual-review-findings"></div>
+            <small id="visualImproveStatus" class="visual-improve-status"></small>
+            <div id="visualImprovementTrace" class="visual-improvement-trace"></div>
+          </section>
+          <div class="split-info">
+            <section>
+              <h2>零件</h2>
+              <div id="partsList" class="parts-list"></div>
+            </section>
+            <section>
+              <h2>装配关系</h2>
+              <div id="relationsList" class="relations-list"></div>
+            </section>
+          </div>
+          <section id="featureTreePanel" class="feature-tree-panel" aria-label="参数化特征与验证">
+            <div class="parametric-head">
+              <div>
+                <span class="workspace-kicker">PARAMETRIC / REVISION</span>
+                <h2>参数化特征树</h2>
+              </div>
+              <div class="revision-controls">
+                <select id="revisionList" aria-label="装配修订"><option value="">暂无修订</option></select>
+                <button id="revertRevisionBtn" type="button" disabled>回退</button>
+              </div>
+            </div>
+            <div id="featureTreeList" class="feature-tree-list"><div class="empty-list">生成装配后显示可编辑特征</div></div>
+            <div class="validation-grid">
+              <div>
+                <h2>验证</h2>
+                <div id="validationSummary" class="validation-summary">尚未运行</div>
+                <div id="repairStatus" class="repair-status" aria-live="polite">未启动修复</div>
+                <div id="validationStages" class="validation-stages" aria-label="六层审查进度"></div>
+                <div id="validationMeasurements" class="validation-issues"></div>
+                <div id="validationIssues" class="validation-issues"></div>
+              </div>
+              <div>
+                <h2>自由度</h2>
+                <div id="dofSummary" class="dof-summary">尚未分析</div>
+              </div>
+            </div>
+          </section>
+          <pre id="log"></pre>
+        </section>
+      </section>
+    </main>
+    <div class="research-rail">
+    <aside id="ratingPanel" class="rating-panel" aria-label="人工评分窗口">
+      <form id="ratingForm" class="rating-window">
+        <div class="rating-head">
+          <div>
+            <p class="eyebrow">QUALITY / MANUAL SCORE</p>
+            <h2>质量检查器</h2>
+          </div>
+        </div>
+        <div class="rating-context">
+          <span id="ratingAssemblyName">等待装配结果</span>
+          <small id="ratingAssemblyId">生成完成后可提交评分</small>
+        </div>
+        <div class="rating-options" role="radiogroup" aria-label="人工评分">
+          <label class="rating-option fail">
+            <input type="radio" name="score" value="0">
+            <strong>0 分</strong>
+            <span>失败：不符合需求、关键几何/装配错误，或构建结果不可用。不进入学习集。</span>
+          </label>
+          <label class="rating-option pass">
+            <input type="radio" name="score" value="50">
+            <strong>50 分</strong>
+            <span>可用但需改进：方向基本对，存在比例、孔位、装配关系或细节问题。只归档复盘。</span>
+          </label>
+          <label class="rating-option excellent">
+            <input type="radio" name="score" value="100">
+            <strong>100 分</strong>
+            <span>优秀：视觉/功能吻合，结构层级清楚，CadQuery 代码值得留下并用于后续学习。</span>
+          </label>
+        </div>
+        <label for="ratingComment">人工备注</label>
+        <textarea id="ratingComment" rows="4" placeholder="记录为什么给这个分，哪些 CadQuery 写法值得保留或避免。"></textarea>
+        <div class="rating-actions">
+          <button id="submitRatingBtn" class="primary" type="submit" disabled>提交评分</button>
+        </div>
+        <div id="ratingStatus" class="rating-status"></div>
+      </form>
+    </aside>
+    </div>
+    <script type="module" src="/app.js?v=request-token-refresh"></script>
+  </body>
+</html>

@@ -1,0 +1,38 @@
+id: aicad
+name: AI-CAD
+version: 0.1.0
+description: Local AI-CAD agent for accurate conversational parametric part modeling, CadQuery BREP validation, STEP/FCStd export, and VAE/latent learning.
+entrypoint: SKILL.md
+repository:
+  type: git
+  path: .
+capabilities:
+  - conversational-cad
+  - cadquery
+  - parametric-part-modeling
+  - brep-validation
+  - vae-latent-learning
+  - step-export
+  - stl-export
+runtime:
+  node: ">=20"
+  python: ">=3.8"
+  commands:
+    start: npm start
+    check: npm run check
+    setup_cadquery: scripts/setup_cadquery_env.sh
+environment:
+  required:
+    - CODEX_BIN
+  optional:
+    - PORT
+    - HOST
+    - CADQUERY_PYTHON
+    - FREECAD_CMD
+outputs:
+  ignored_by_git:
+    - assemblies/
+    - renders/
+    - workspace/
+    - logs/
+    - .venv-cadquery/

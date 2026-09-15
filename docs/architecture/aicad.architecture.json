@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "AI-CAD 参数化建模系统架构",
+    "output": "../../public/architecture.html",
+    "quality_profile": "showcase",
+    "viewBox": [1440, 820],
+    "views": [
+      { "id": "modeling_path", "label": "参数化建模主链", "focus": ["workbench", "orchestrator", "planner", "parametric", "cadkernel", "validation", "revision", "delivery"], "note": "从用户输入到可验证 STEP/FCStd 的主交付路径。" },
+      { "id": "ai_context", "label": "AI 规划与上下文", "focus": ["orchestrator", "planner", "codex", "catalog", "learning"], "note": "Codex、资料检索、标准件和 VAE 只辅助参数化计划，不替代几何验证。" },
+      { "id": "repair_loop", "label": "检查与修复闭环", "focus": ["visual", "orchestrator", "parametric", "validation", "revision"], "note": "问题必须定位到零件和特征，候选修订通过验证后才晋升。" }
+    ]
+  },
+  "components": [
+    { "id": "workbench", "type": "frontend", "label": "AI-CAD 工程工作台", "sublabel": "对话 · 特征树 · 3D 预览", "pos": [55, 315], "size": [175, 78] },
+    { "id": "orchestrator", "type": "backend", "label": "Node 编排与 API", "sublabel": "server.js · 会话与任务", "pos": [285, 315], "size": [175, 78] },
+    { "id": "planner", "type": "backend", "label": "规划器契约", "sublabel": "提示词 · 修复 · 复杂度", "pos": [515, 315], "size": [175, 78] },
+    { "id": "parametric", "type": "backend", "label": "参数化建模核心", "sublabel": "featureTree · edit_patch", "pos": [745, 315], "size": [175, 78] },
+    { "id": "cadkernel", "type": "backend", "label": "CadQuery / OCCT", "sublabel": "BREP 构建与布尔运算", "pos": [975, 315], "size": [175, 78] },
+    { "id": "validation", "type": "security", "label": "工程验证门", "sublabel": "实体 · 尺寸 · 干涉 · 制造性", "pos": [1205, 315], "size": [185, 78] },
+    { "id": "revision", "type": "database", "label": "参数化修订库", "sublabel": "候选 · 晋升 · 回滚", "pos": [975, 545], "size": [175, 78] },
+    { "id": "delivery", "type": "cloud", "label": "工程交付", "sublabel": "STEP · FCStd · STL/GLB", "pos": [1205, 545], "size": [185, 78] },
+    { "id": "codex", "type": "external", "label": "Codex", "sublabel": "完整计划 / edit_patch", "pos": [285, 90], "size": [175, 72] },
+    { "id": "catalog", "type": "external", "label": "资料与标准件", "sublabel": "AnySearch · step.parts", "pos": [515, 90], "size": [175, 72] },
+    { "id": "learning", "type": "database", "label": "VAE / latent 学习库", "sublabel": "成功结构与失败模式", "pos": [745, 90], "size": [175, 72] },
+    { "id": "visual", "type": "frontend", "label": "视觉审查闭环", "sublabel": "问题定位 · 拟修改 · 再验证", "pos": [515, 545], "size": [175, 78] }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "AI-CAD 本机工程域", "wraps": ["workbench", "orchestrator", "planner", "parametric", "cadkernel", "validation", "revision", "delivery", "visual", "learning"], "pad": 24 }
+  ],
+  "connections": [
+    { "id": "request", "from": "workbench", "to": "orchestrator", "label": "POST /api/chat", "variant": "emphasis", "labelAt": [258, 311] },
+    { "id": "plan_request", "from": "orchestrator", "to": "planner", "label": "生成或局部修改", "labelAt": [488, 407] },
+    { "id": "plan_normalize", "from": "planner", "to": "parametric", "label": "规范化 featureTree", "labelAt": [718, 407] },
+    { "id": "brep_build", "from": "parametric", "to": "cadkernel", "label": "构建参数化 BREP", "labelAt": [948, 407] },
+    { "id": "geometry_evidence", "from": "cadkernel", "to": "validation", "label": "几何与测量证据", "labelAt": [1178, 407] },
+    { "id": "candidate_revision", "from": "validation", "to": "revision", "label": "通过后晋升", "variant": "security", "fromSide": "bottom", "toSide": "right" },
+    { "id": "artifact_delivery", "from": "revision", "to": "delivery", "label": "当前修订产物", "variant": "emphasis", "labelAt": [1178, 637] },
+    { "id": "codex_plan", "from": "codex", "to": "planner", "label": "JSON 计划 / edit_patch", "variant": "dashed" },
+    { "id": "catalog_context", "from": "catalog", "to": "planner", "label": "代码参考与标准件", "variant": "dashed", "labelAt": [603, 176] },
+    { "id": "latent_context", "from": "learning", "to": "planner", "label": "结构检索上下文", "variant": "dashed" },
+    { "id": "review_feedback", "from": "visual", "to": "orchestrator", "label": "结构化问题反馈", "fromSide": "left", "toSide": "bottom" },
+    { "id": "review_target", "from": "visual", "to": "parametric", "label": "零件 / 特征目标", "variant": "security", "fromSide": "top", "toSide": "bottom" },
+    { "id": "repair_retry", "from": "validation", "to": "orchestrator", "label": "阻断错误触发修复", "variant": "security", "fromSide": "right", "toSide": "left", "via": [[1420, 354], [1420, 690], [270, 690], [270, 354]], "labelAt": [850, 710] }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "核心原则", "items": ["参数化 featureTree 是主表示", "局部 edit_patch 不重建无关零件"] },
+    { "dot": "emerald", "title": "工程门禁", "items": ["BREP/STEP 测量确认关键尺寸", "构建、干涉与约束通过后才晋升"] },
+    { "dot": "amber", "title": "AI 边界", "items": ["Codex 与 VAE 提供规划上下文", "视觉截图不作为精确尺寸证据"] }
+  ]
+}

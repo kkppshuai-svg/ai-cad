@@ -1,0 +1,22 @@
+{
+  "name": "ai-cad-freecad",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "architecture": "node /home/kkk/.codex/skills/archify/bin/archify.mjs deliver architecture docs/architecture/aicad.architecture.json public/architecture.html --quality showcase --json",
+    "test:validation-repair": "node --test validation-repair-loop.test.mjs",
+    "check": "node --check server.js && node --check assembly-validation-report.js && node --check kinematic-package-report.js && node --check assembly-build.js && node --check conversation-turn.js && node --check text-utils.js && node --check api-routes.js && node --check codex-harness.js && node --check deepseek-client.js && node --check llm-provider.js && node --check cad-latent-training.js && node --check assembly-job-recovery.js && node --check codex-retry.js && node --check planner-context.js && node --check planner-profile-repair.js && node --check public/app.js && node --check public/api-client.js && node --check public/cad-viewer.js && node --check scripts/render_freecad_bridge.mjs && node --check conversation-state.js && node --check parametric-plan.js && node --check parametric-edit.js && node --check plan-complexity.js && node --check revision-store.js && node --check assembly-constraints.js && node --check cad-validation.js && node --check parametric-api.js && python3 -m py_compile scripts/aicad_training_30.py scripts/train_cad_vae.py scripts/query_cad_vae.py scripts/cadquery_build.py scripts/extract_brep_geometry.py scripts/import_deepcad_subset.py scripts/train_brep_vae.py scripts/query_brep_vae.py && python3 -m pytest scripts/test_train_cad_vae.py scripts/test_query_cad_vae.py -q && PYTHONPATH=scripts .venv-cadquery/bin/python scripts/test_extract_brep_geometry.py && PYTHONPATH=scripts .venv-cadquery/bin/python scripts/test_import_deepcad_subset.py && PYTHONPATH=scripts .venv-cadquery/bin/python scripts/test_train_brep_vae.py && PYTHONPATH=scripts .venv-cadquery/bin/python scripts/test_parametric_build.py && node --test api-routes.test.mjs assembly-plan-limits.test.mjs fbs-workflow.test.mjs validation-repair-loop.test.mjs assembly-validation-report.test.mjs kinematic-package-report.test.mjs assembly-build.test.mjs conversation-turn.test.mjs text-utils.test.mjs deepseek-client.test.mjs llm-provider.test.mjs codex-harness.test.mjs api-client.test.mjs security.test.mjs anysearch-provider.test.mjs cad-explorer-link.test.mjs cad-latent-dataset.test.mjs cad-latent-memory.test.mjs cad-latent-training.test.mjs cad-reference-context.test.mjs codex-cli.test.mjs codex-retry.test.mjs conversation-state.test.mjs freecad-bridge.test.mjs freecad-integration.test.mjs planner-context.test.mjs planner-profile-repair.test.mjs planner-profile-repair.integration.test.mjs prompt-contract.test.mjs standard-parts.test.mjs step-parts.test.mjs ui-copy.test.mjs viewer-views.test.mjs visual-review.test.mjs visual-review-ui.test.mjs training-mode.test.mjs industrial-ui.test.mjs glb-export.test.mjs cad-viewer-ui.test.mjs remove-openscad.test.mjs parametric-plan.test.mjs parametric-edit.test.mjs plan-complexity.test.mjs revision-store.test.mjs assembly-constraints.test.mjs cad-validation.test.mjs parametric-api.test.mjs parametric-ui.test.mjs assembly-job-recovery.test.mjs preview-restore.test.mjs nema23-template.test.mjs architecture-ui.test.mjs",
+    "train:10": "./.venv-cadquery/bin/python scripts/aicad_training_30.py --suite 10",
+    "train:30": "./.venv-cadquery/bin/python scripts/aicad_training_30.py --suite 30",
+    "train:50": "./.venv-cadquery/bin/python scripts/aicad_training_30.py --suite 50"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "three": "^0.185.1"
+  }
+}
