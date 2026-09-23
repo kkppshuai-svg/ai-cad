@@ -20,7 +20,7 @@ export class CadLatentTrainingManager {
     extractScript,
     structureTrainScript,
     brepTrainScript,
-    minSamples = 2,
+    minSamples = 3,
     epochs = 120,
     onEvent = () => {}
   } = {}) {
@@ -34,7 +34,7 @@ export class CadLatentTrainingManager {
     this.extractScript = extractScript || path.join(this.rootDir, "scripts", "extract_brep_geometry.py");
     this.structureTrainScript = structureTrainScript || path.join(this.rootDir, "scripts", "train_cad_vae.py");
     this.brepTrainScript = brepTrainScript || path.join(this.rootDir, "scripts", "train_brep_vae.py");
-    this.minSamples = Math.max(2, Number(minSamples) || 2);
+    this.minSamples = Math.max(3, Number(minSamples) || 3);
     this.epochs = Math.max(1, Number(epochs) || 120);
     this.onEvent = onEvent;
     this.queue = [];
@@ -124,6 +124,10 @@ export class CadLatentTrainingManager {
         latentDim: model.latentDim || 0,
         metrics: model.metrics || {},
         vocabulary: model.vocabulary || [],
+        inputDim: model.inputDim,
+        hiddenDim: model.hiddenDim,
+        weights: model.weights,
+        countNormalization: model.countNormalization,
         components: model.components || [],
         mean: model.mean || [],
         samples: model.samples || []
@@ -174,7 +178,7 @@ export class CadLatentTrainingManager {
     const stamp = new Date().toISOString().replace(/[:.]/g, "-");
     const structureTmp = path.join(this.runtimeDir, `.cad-model-${stamp}.json`);
     const brepTmp = path.join(this.runtimeDir, `.brep-model-${stamp}.json`);
-    await runJson(this.python, [this.structureTrainScript, "--dataset", this.structureDatasetPath(), "--out", structureTmp, "--latent-dim", "8"], { cwd: this.rootDir, timeoutMs: 180000 });
+    await runJson(this.python, [this.structureTrainScript, "--dataset", this.structureDatasetPath(), "--out", structureTmp, "--latent-dim", "8", "--epochs", String(this.epochs)], { cwd: this.rootDir, timeoutMs: 180000 });
     await runJson(this.python, [this.brepTrainScript, "--dataset", this.brepDatasetPath(), "--out", brepTmp, "--latent-dim", "8", "--hidden-dim", "64", "--epochs", String(this.epochs)], { cwd: this.rootDir, timeoutMs: 300000 });
     const modelVersion = `vae-${Date.now()}`;
     const structureModel = JSON.parse(await readFile(structureTmp, "utf8"));

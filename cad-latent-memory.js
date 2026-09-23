@@ -1,3 +1,4 @@
+import { encodeStructureTokens } from './structure-vae-runtime.mjs';
 const ZH_KEYWORDS = [
   "轴承", "连杆", "支架", "外壳", "孔", "槽", "圆角", "倒角", "舵机", "电机",
   "螺丝", "螺钉", "螺母", "安装", "盒子", "滑块", "导轨", "齿轮", "轮胎", "关节",
@@ -70,21 +71,31 @@ export function rankCadLatentSamples(message, samples = [], options = {}) {
 }
 
 export function rankCadLatentModelSamples(message, model, options = {}) {
-  if (!model || !Array.isArray(model.vocabulary) || !Array.isArray(model.components) || !Array.isArray(model.mean)) return [];
+  if (!model || !Array.isArray(model.vocabulary)) return [];
+  const neural = model.format === 'formalatent-structure-vae-v1';
+  if (!neural && (!Array.isArray(model.components) || !Array.isArray(model.mean))) return [];
   const limit = Math.max(1, Math.min(8, Number(options.limit || 4)));
   const vocabulary = new Map(model.vocabulary.map((token, index) => [token, index]));
-  const vector = Array.from({ length: model.mean.length }, () => 0);
+  const vector = Array.from({ length: neural ? model.inputDim : model.mean.length }, () => 0);
   const queryTokens = tokenizeText(message);
   for (const token of queryTokens) {
     const index = vocabulary.get(token);
     if (index != null) vector[index] = 1;
     if (token === "zh:孔" && vocabulary.has("feature:hole")) vector[vocabulary.get("feature:hole")] = 1;
   }
-  const centered = vector.map((value, index) => value - Number(model.mean[index] || 0));
-  const latent = model.components.map((component) => dot(centered, component));
+  const centered = neural ? vector : vector.map((value, index) => value - Number(model.mean[index] || 0));
+  const neuralTokens = new Set(queryTokens);
+  const queryText = String(message || '').toLowerCase();
+  if (/\bextrud\w*|拉伸|挤出/.test(queryText)) neuralTokens.add('feature:extrude');
+  if (/\bcut\b|切除/.test(queryText)) neuralTokens.add('operation:CutFeatureOperation');
+  if (/\bcircle\b|圆形草图/.test(queryText)) neuralTokens.add('curve:Circle3D');
+  for (const [word, feature] of [['孔','hole'],['槽','slot'],['圆角','fillet'],['倒角','chamfer']]) {
+    if (queryTokens.has(`zh:${word}`)) neuralTokens.add(`feature:${feature}`);
+  }
+  const latent = neural ? encodeStructureTokens(model, neuralTokens) : model.components.map((component) => dot(centered, component));
   return (model.samples || [])
     .map((sample) => {
-      const structural = scoreTokenOverlap(queryTokens, new Set(sample.tokens || []));
+      const structural = scoreTokenOverlap(neural ? neuralTokens : queryTokens, new Set(sample.tokens || []));
       const distance = euclideanDistance(latent, sample.latent || []);
       return {
         id: sample.id,
@@ -224,6 +235,7 @@ function tokenWeight(token) {
 }
 
 function qualityScore(quality = {}) {
+  quality = quality || {};
   let score = 0;
   if (quality.score === 100) score += 10;
   if (quality.score === 50) score += 3;

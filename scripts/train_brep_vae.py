@@ -107,11 +107,15 @@ def evaluate(params, x, beta):
     return reconstruction + beta * kl, reconstruction, kl
 
 
-def train_brep_vae(records, feature_names, matrix, latent_dim=8, hidden_dim=64, epochs=400, beta=0.01, learning_rate=0.01, seed=42, initial_model=None):
+def train_brep_vae(records, feature_names, matrix, latent_dim=8, hidden_dim=64, epochs=400, beta=0.01, learning_rate=0.01, seed=42, initial_model=None, batch_size=64, warmup_epochs=20):
     rng = np.random.default_rng(seed)
-    mean = matrix.mean(axis=0)
-    std = matrix.std(axis=0)
-    std[std < 1e-8] = 1.0
+    matrix = np.asarray(matrix, dtype=np.float64)
+    if matrix.ndim != 2 or matrix.shape != (len(records), len(feature_names)) or len(records) < 2:
+        raise ValueError("expected at least two records with matching feature vectors")
+    if not np.isfinite(matrix).all() or not len(feature_names):
+        raise ValueError("features must be nonempty and finite")
+    if min(latent_dim, hidden_dim, epochs, batch_size) < 1 or warmup_epochs < 0 or not np.isfinite([beta, learning_rate]).all() or beta < 0 or learning_rate <= 0:
+        raise ValueError("invalid training hyperparameters")
     if initial_model is not None:
         if list(initial_model.get("featureNames", [])) != list(feature_names):
             raise ValueError("pretrained model feature schema mismatch")
@@ -119,28 +123,46 @@ def train_brep_vae(records, feature_names, matrix, latent_dim=8, hidden_dim=64, 
             raise ValueError("pretrained model input dimension mismatch")
         hidden_dim = int(initial_model["hiddenDim"])
         latent_dim = int(initial_model["latentDim"])
-    normalized = (matrix - mean) / std
     order = rng.permutation(len(records))
     validation_count = max(1, int(round(len(records) * 0.2))) if len(records) >= 5 else 1
     validation_indices = order[:validation_count]
     train_indices = order[validation_count:]
     if not len(train_indices):
         train_indices = order
+    # Fit statistics only on training data; retain the pretrained coordinate system.
+    if initial_model is None:
+        mean = matrix[train_indices].mean(axis=0)
+        std = matrix[train_indices].std(axis=0)
+        std[std < 1e-8] = 1.0
+    else:
+        mean = np.asarray(initial_model["normalization"]["mean"], dtype=np.float64)
+        std = np.asarray(initial_model["normalization"]["std"], dtype=np.float64)
+        if mean.shape != (matrix.shape[1],) or std.shape != mean.shape or not np.isfinite([mean, std]).all() or (std <= 0).any():
+            raise ValueError("invalid pretrained normalization")
+    normalized = (matrix - mean) / std
     train_x = normalized[train_indices]
     validation_x = normalized[validation_indices]
     params = init_params(matrix.shape[1], hidden_dim, latent_dim, rng)
     if initial_model is not None:
         pretrained_params = model_params(initial_model)
-        for name in ("w_mu", "b_mu", "w_lv", "b_lv", "w2", "b2"):
+        for name in params:
+            if pretrained_params[name].shape != params[name].shape or not np.isfinite(pretrained_params[name]).all():
+                raise ValueError(f"invalid pretrained weight: {name}")
             params[name] = pretrained_params[name].copy()
     state = {"m": {name: np.zeros_like(value) for name, value in params.items()}, "v": {name: np.zeros_like(value) for name, value in params.items()}}
     best_params = copy.deepcopy(params)
-    best_validation = float("inf")
+    best_validation = evaluate(params, validation_x, beta)[0]
     stale = 0
     history = []
-    for epoch in range(1, max(int(epochs), 1) + 1):
-        total, reconstruction, kl, grads = loss_and_gradients(params, train_x, beta, rng)
-        adam_step(params, grads, state, epoch, learning_rate)
+    step = 0
+    for epoch in range(1, int(epochs) + 1):
+        epoch_beta = beta * min(1.0, epoch / max(warmup_epochs, 1))
+        shuffled = rng.permutation(len(train_x))
+        for start in range(0, len(train_x), batch_size):
+            batch_x = train_x[shuffled[start:start + batch_size]]
+            total, reconstruction, kl, grads = loss_and_gradients(params, batch_x, epoch_beta, rng)
+            step += 1
+            adam_step(params, grads, state, step, learning_rate)
         validation_total, validation_reconstruction, validation_kl = evaluate(params, validation_x, beta)
         history.append({"epoch": epoch, "loss": total, "reconstruction": reconstruction, "kl": kl, "validationLoss": validation_total})
         if validation_total < best_validation - 1e-7:
@@ -163,11 +185,13 @@ def train_brep_vae(records, feature_names, matrix, latent_dim=8, hidden_dim=64, 
         "featureNames": list(feature_names),
         "normalization": {"mean": mean.tolist(), "std": std.tolist()},
         "weights": {name: value.tolist() for name, value in params.items()},
-        "training": {"beta": beta, "learningRate": learning_rate, "epochsCompleted": len(history), "seed": seed,
-                     "initializedFrom": initial_model.get("format") if initial_model is not None else None},
+        "training": {"beta": beta, "learningRate": learning_rate, "epochsCompleted": len(history), "seed": seed, "batchSize": batch_size, "warmupEpochs": warmup_epochs,
+                     "initializedFrom": initial_model.get("format") if initial_model is not None else None,
+                     "implementationVersion": "3.0.0", "normalizationSource": "pretrained" if initial_model else "training-split",
+                     "trainIndices": train_indices.tolist(), "validationIndices": validation_indices.tolist()},
         "metrics": {"reconstructionMse": reconstruction, "klLoss": kl, "validationLoss": best_validation},
         "samples": [
-            {"id": record.get("id"), "name": record.get("name"), "assemblyId": record.get("assemblyId"), "latent": latents[index].tolist()}
+            {"id": record.get("id"), "name": record.get("name"), "assemblyId": record.get("assemblyId"), "latent": latents[index].tolist(), "geometryVector": matrix[index].tolist()}
             for index, record in enumerate(records)
         ],
     }
@@ -189,6 +213,16 @@ def encode_vectors(model, matrix):
     return forward(model_params(model), normalized, sample=False)["mu"]
 
 
+def decode_latents(model, latents):
+    """Decode latent coordinates to geometry descriptors, not a STEP solid."""
+    latents = np.asarray(latents, dtype=np.float64)
+    if latents.ndim != 2 or latents.shape[1] != model["latentDim"] or not np.isfinite(latents).all():
+        raise ValueError("expected finite latent matrix with model latent dimension")
+    params = model_params(model)
+    normalized = np.tanh(latents @ params["w2"] + params["b2"]) @ params["w_out"] + params["b_out"]
+    return normalized * np.asarray(model["normalization"]["std"]) + np.asarray(model["normalization"]["mean"])
+
+
 def write_model(model, path):
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -205,11 +239,13 @@ def main():
     parser.add_argument("--beta", type=float, default=0.01)
     parser.add_argument("--learning-rate", type=float, default=0.01)
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--batch-size", type=int, default=64)
+    parser.add_argument("--warmup-epochs", type=int, default=20)
     parser.add_argument("--init-model", help="Compatible BREP VAE model used to initialize fine-tuning.")
     args = parser.parse_args()
     records, feature_names, matrix = load_geometry_dataset(args.dataset)
     initial_model = load_model(args.init_model) if args.init_model else None
-    model = train_brep_vae(records, feature_names, matrix, args.latent_dim, args.hidden_dim, args.epochs, args.beta, args.learning_rate, args.seed, initial_model)
+    model = train_brep_vae(records, feature_names, matrix, args.latent_dim, args.hidden_dim, args.epochs, args.beta, args.learning_rate, args.seed, initial_model, args.batch_size, args.warmup_epochs)
     write_model(model, args.out)
     print(json.dumps({"ok": True, "model": args.out, "sampleCount": model["sampleCount"], "metrics": model["metrics"]}, ensure_ascii=False, indent=2))
 

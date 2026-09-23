@@ -33,7 +33,7 @@ def test_train_cad_vae_writes_model(tmp_path):
     dataset.write_text("\n".join(json.dumps(sample) for sample in samples) + "\n", encoding="utf-8")
 
     result = subprocess.run(
-        [sys.executable, "scripts/train_cad_vae.py", "--dataset", str(dataset), "--out", str(model), "--latent-dim", "2"],
+        [sys.executable, "scripts/train_cad_vae.py", "--dataset", str(dataset), "--out", str(model), "--latent-dim", "2", "--backend", "svd"],
         cwd=Path(__file__).resolve().parents[1],
         text=True,
         capture_output=True,

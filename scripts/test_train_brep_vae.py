@@ -67,7 +67,7 @@ class BrepVaeTrainingTests(unittest.TestCase):
 
             self.assertEqual(fine_tuned["training"]["initializedFrom"], "ai-cad-brep-vae-v2")
             self.assertEqual(fine_tuned["latentDim"], pretrained["latentDim"])
-            self.assertNotEqual(fine_tuned["normalization"], pretrained["normalization"])
+            self.assertEqual(fine_tuned["normalization"], pretrained["normalization"])
             self.assertTrue(np.isfinite(fine_tuned["metrics"]["reconstructionMse"]))
             self.assertNotEqual(fine_tuned["weights"], pretrained["weights"])
 

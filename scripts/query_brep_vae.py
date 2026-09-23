@@ -5,19 +5,12 @@ import math
 
 import numpy as np
 
-from extract_brep_geometry import extract_step_features
 from train_brep_vae import encode_vectors, load_model
 
 
 def rank_dataset_vector(model, vector, limit=5):
-    latent = encode_vectors(model, np.asarray([vector], dtype=np.float64))[0]
-    matches = []
-    for sample in model.get("samples", []):
-        sample_latent = np.asarray(sample.get("latent") or [], dtype=np.float64)
-        distance = float(np.linalg.norm(latent - sample_latent))
-        matches.append({"id": sample.get("id"), "name": sample.get("name"), "assemblyId": sample.get("assemblyId"), "distance": distance})
-    matches.sort(key=lambda item: (item["distance"], str(item.get("id"))))
-    return matches[:max(1, int(limit))]
+    from vae_runtime import VaeRuntime
+    return VaeRuntime(model).search([vector], limit=max(1, int(limit)))[0]
 
 
 def main():
@@ -27,6 +20,7 @@ def main():
     parser.add_argument("--limit", type=int, default=5)
     args = parser.parse_args()
     model = load_model(args.model)
+    from extract_brep_geometry import extract_step_features
     geometry = extract_step_features(args.step)
     if geometry["featureNames"] != model["featureNames"]:
         raise SystemExit("geometry feature schema does not match model")
