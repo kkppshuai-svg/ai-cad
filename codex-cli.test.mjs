@@ -45,19 +45,21 @@ test("does not pass removed view_image feature flag to current Codex", () => {
   assert.equal(invocation.args.includes("view_image"), false);
 });
 
-test("pins GPT-6 Astra and a supported reasoning effort when configured", () => {
+test("pins GPT-6 Sol and all supported reasoning efforts when configured", () => {
   const invocation = buildCodexExecInvocation("return json", [], {
-    model: "gpt-6-astra",
+    model: "gpt-6-sol",
     reasoningEffort: "medium"
   });
   assert.deepEqual(invocation.args.slice(0, 5), [
     "exec",
     "--model",
-    "gpt-6-astra",
+    "gpt-6-sol",
     "-c",
     'model_reasoning_effort="medium"'
   ]);
-  assert.equal(normalizeCodexModel("gpt-6-astra"), "gpt-6-astra");
+  assert.equal(normalizeCodexModel(), "gpt-6-sol");
+  assert.equal(normalizeCodexModel("gpt-6-sol"), "gpt-6-sol");
   assert.equal(normalizeCodexReasoningEffort("medium"), "medium");
-  assert.throws(() => normalizeCodexReasoningEffort("none"), /Invalid Codex reasoning effort/);
+  assert.equal(normalizeCodexReasoningEffort("none"), "none");
+  assert.throws(() => normalizeCodexReasoningEffort("minimal"), /Invalid Codex reasoning effort/);
 });

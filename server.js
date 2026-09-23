@@ -77,7 +77,7 @@ const maxVisualReviewImages = boundedInt(process.env.AICAD_MAX_VISUAL_REVIEW_IMA
 const maxVisualReviewImageBytes = boundedInt(process.env.AICAD_MAX_VISUAL_REVIEW_IMAGE_BYTES, 1_500_000, 10_000, 5_000_000);
 const cadqueryPython = validateCommandPath(process.env.CADQUERY_PYTHON || path.join(__dirname, ".venv-cadquery", "bin", "python"), "CADQUERY_PYTHON");
 const codexBin = validateCommandPath(process.env.CODEX_BIN || "codex", "CODEX_BIN");
-const codexModel = normalizeCodexModel(process.env.AICAD_CODEX_MODEL, "gpt-6-astra");
+const codexModel = normalizeCodexModel(process.env.AICAD_CODEX_MODEL, "gpt-6-sol");
 const codexReasoningEffort = normalizeCodexReasoningEffort(process.env.AICAD_CODEX_REASONING_EFFORT, "medium");
 const codexHarnessEnabled = process.env.AICAD_CODEX_HARNESS !== "exec";
 const codexHarnessStrict = process.env.AICAD_CODEX_HARNESS_STRICT === "1";

@@ -1,6 +1,6 @@
-const CODEX_REASONING_EFFORTS = new Set(["low", "medium", "high", "xhigh", "max"]);
+const CODEX_REASONING_EFFORTS = new Set(["none", "low", "medium", "high", "xhigh", "max"]);
 
-export function normalizeCodexModel(value, fallback = "gpt-6-astra") {
+export function normalizeCodexModel(value, fallback = "gpt-6-sol") {
   const model = String(value || fallback).trim();
   if (!/^[a-z0-9][a-z0-9._-]{0,79}$/i.test(model)) throw new Error(`Invalid Codex model: ${model}`);
   return model;
