@@ -23,7 +23,7 @@ test("Codex harness uses app-server lifecycle and interrupt controls", () => {
 test("AI-CAD exposes harness migration status and keeps an exec fallback", () => {
   assert.match(server, /codexHarness:\s*\{/);
   assert.match(server, /AICAD_CODEX_MODEL/);
-  assert.match(server, /gpt-6-astra/);
+  assert.match(server, /gpt-6-sol/);
   assert.match(server, /AICAD_CODEX_HARNESS_STRICT/);
   assert.match(server, /Codex app-server planner fallback/);
   assert.match(server, /buildCodexExecInvocation/);

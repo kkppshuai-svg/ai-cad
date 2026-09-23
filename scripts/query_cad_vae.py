@@ -31,6 +31,9 @@ ZH_KEYWORDS = [
 ]
 
 CAD_INTENT_RULES = [
+    ("feature:extrude", [r"\bextrud\w*", r"拉伸", r"挤出"]),
+    ("operation:CutFeatureOperation", [r"\bcut\b", r"切除"]),
+    ("curve:Circle3D", [r"\bcircle\b", r"圆形草图"]),
     ("concept:weeding-brush", [r"weeding[_\s-]*brush", r"weed[_\s-]*brush", r"除草刷"]),
     ("component:bristle", [r"bristles?", r"brush[_\s-]*(wire|line|hair)", r"刷毛"]),
     ("component:shaft", [r"\bshaft\b", r"\baxis\b", r"主轴", r"刷轴", r"中心轴"]),
@@ -61,6 +64,9 @@ def query_tokens(text):
 
 
 def encode_query(model, text):
+    if model.get('format') == 'formalatent-structure-vae-v1':
+        from structure_vae import StructureVAE
+        return StructureVAE(model).encode([{'tokens':list(query_tokens(text))}])[0]
     vocabulary = {token: index for index, token in enumerate(model["vocabulary"])}
     vector = np.zeros(len(model["mean"]), dtype=np.float64)
     for token in query_tokens(text):
@@ -106,7 +112,7 @@ def quality_score(quality):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Query the lightweight CAD latent model.")
+    parser = argparse.ArgumentParser(description="Query a neural CAD structure VAE or legacy SVD model.")
     parser.add_argument("--model", default="cad-latent/model.json")
     parser.add_argument("--query", required=True)
     parser.add_argument("--limit", type=int, default=5)

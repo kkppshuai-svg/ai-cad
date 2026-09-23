@@ -10,7 +10,7 @@ PORT=3101
 CADQUERY_PYTHON=/absolute/path/to/ai-cad/.venv-cadquery/bin/python
 FREECAD_CMD=freecadcmd
 CODEX_BIN=codex
-AICAD_CODEX_MODEL=gpt-6-astra
+AICAD_CODEX_MODEL=gpt-6-sol
 AICAD_CODEX_REASONING_EFFORT=medium
 AICAD_LLM_PROVIDER=codex
 ```
@@ -47,10 +47,12 @@ AICAD_LLM_PROVIDER=codex
 | 变量 | 默认值 | 说明 |
 | --- | --- | --- |
 | `CODEX_BIN` | `codex` | Codex CLI 命令或绝对路径 |
-| `AICAD_CODEX_MODEL` | `gpt-6-astra` | 规划、修复和审查模型 |
-| `AICAD_CODEX_REASONING_EFFORT` | `medium` | `low`、`medium`、`high`、`xhigh`、`max` |
+| `AICAD_CODEX_MODEL` | `gpt-6-sol` | 规划、修复和审查模型 |
+| `AICAD_CODEX_REASONING_EFFORT` | `medium` | `none`、`low`、`medium`、`high`、`xhigh`、`max` |
 | `AICAD_CODEX_HARNESS` | app-server | 设为 `exec` 可关闭持久 harness |
 | `AICAD_CODEX_HARNESS_STRICT` | `0` | `1` 表示 harness 失败时不回退 CLI exec |
+
+AI-CAD 默认使用 [GPT-6 Sol](https://developers.openai.com/api/docs/models/gpt-6-sol)。app-server 主链和 `codex exec` 回退链共享同一模型配置。
 
 ### DeepSeek
 
