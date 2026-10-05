@@ -52,6 +52,10 @@ Validation Gate
 | --- | --- |
 | `server.js` | HTTP/SSE、运行时依赖、路由装配、服务生命周期 |
 | `api-routes.js` | API 路由表与匹配规则 |
+| `cad-search.js` | 本地资料、外部搜索回退和不可信资料过滤 |
+| `assembly-plan.js` | 装配计划、标准件、位姿和关节校验 |
+| `runtime-process.js` | 环境加载、子进程白名单、超时和输出限制 |
+| `cadquery-example.js` | 用正式构建器保存和重建优秀样本 |
 | `conversation-turn.js` | 单轮规划、FBS 上下文和修复编排 |
 | `llm-provider.js` | Codex/DeepSeek 路由与回退策略 |
 | `prompt-contract.js` | Concept-CAD、编辑补丁和修复提示合同 |

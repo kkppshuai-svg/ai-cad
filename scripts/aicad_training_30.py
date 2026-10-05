@@ -10,7 +10,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 ASSEMBLIES_DIR = ROOT / "assemblies"
-FEEDBACK_DIR = Path(os.environ.get("AICAD_CONVERSATION_DIR", "/home/kkkk/桌面/aicad建模反馈"))
+FEEDBACK_DIR = Path(os.environ.get("AICAD_CONVERSATION_DIR", ROOT / "aicad建模反馈"))
 CADQUERY_PYTHON = Path(os.environ.get("CADQUERY_PYTHON", ROOT / ".venv-cadquery" / "bin" / "python"))
 BUILDER = ROOT / "scripts" / "cadquery_build.py"
 
@@ -975,7 +975,7 @@ def main():
             "--suite 30 runs the full 30-case regression set.\n"
             "--suite 50 runs the extended 50-case sample regression set.\n"
             "Outputs are written to assemblies/training-<suite>-* and "
-            "/home/kkkk/桌面/aicad建模反馈/AI-CAD建模<suite>组训练反馈-*.md.\n"
+            "aicad建模反馈/AI-CAD建模<suite>组训练反馈-*.md.\n"
         )
         return 0
     suite = "30"

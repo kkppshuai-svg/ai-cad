@@ -15,6 +15,10 @@ npm run check
 ```text
 public/                     浏览器 UI 与 Three.js 工程预览
 server.js                   HTTP/SSE 入口与运行时装配
+cad-search.js               搜索服务、回退和规划上下文
+assembly-plan.js            装配计划、标准件和关节校验
+runtime-process.js          环境配置与有界子进程执行
+cadquery-example.js         正式构建器的优秀样本快照
 conversation-turn.js        对话、FBS 和修复编排
 assembly-build.js           构建与修订晋级
 parametric-*.js             计划、编辑及参数化 API
@@ -33,7 +37,7 @@ agents/aicad/               AI-CAD agent 封装
 npm run check
 ```
 
-完整检查包含 Node 语法检查、Python 编译检查、Python 单元测试、CadQuery 构建测试和全部 `.test.mjs` 回归。开发中可运行定向测试：
+完整检查包含 Node 语法检查、Python 编译检查、Python 单元测试、CadQuery 构建测试和全部 `.test.mjs` 回归。`scripts/check.mjs` 自动发现源码和测试文件，新增测试无需手工维护命令长列表。开发中可运行定向测试：
 
 ```bash
 node --test fbs-workflow.test.mjs prompt-contract.test.mjs
@@ -86,6 +90,10 @@ npm run train:50
   --out cad-latent/brep_vae_model.json
 ```
 
+`cad-latent/curated-groups/` 是可重建的实验输出，使用 `node scripts/curate_training_groups.mjs` 生成，保持在 Git 忽略列表中。服务启动所需的种子数据与两个基线模型保留在 `cad-latent/`。
+
+优秀样本使用 `cadquery-example.js` 保存正式 `cadquery_build.py` 的快照，通过同一构建器重建特征树，避免单独维护简化版几何实现。
+
 只有通过验证并晋级的修订可以进入自动学习队列。训练结果用于检索和提示参考，不能覆盖当前用户的明确尺寸和功能意图。
 
 ## 6. 文档与架构图
@@ -96,7 +104,7 @@ npm run train:50
 npm run architecture
 ```
 
-生成后应检查 `public/architecture.html` 是否能离线打开、节点文案是否与当前模块一致。若开发环境没有该 skill，代码与测试仍可正常工作。
+生成后应检查 `public/architecture.html` 是否能离线打开、节点文案是否与当前模块一致。可用 `ARCHIFY_CLI` 指定工具路径，或从 `CODEX_HOME` 下的 skills 目录自动解析。若开发环境没有该 skill，代码与测试仍可正常工作。
 
 ## 7. 提交前清单
 

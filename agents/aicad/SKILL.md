@@ -9,11 +9,7 @@ AI-CAD is a local parametric CAD generation agent backed by a Node HTTP app and 
 
 ## Default Repository
 
-The project root is the directory containing this `agents/aicad` package. Original-workstation example path:
-
-```bash
-/home/kkkk/桌面/ai-cad
-```
+Resolve the project root from this package with `cd agents/aicad/../..`.
 
 ## Workflow
 

@@ -30,3 +30,9 @@ aicad人工评分/
 # Python caches
 __pycache__/
 *.pyc
+
+# Reproducible experiments and local build output
+output/
+cad-latent/curated-groups/
+cad-latent/pretraining_experiment.json
+cad-latent/brep_vae_deepcad_finetuned.json
