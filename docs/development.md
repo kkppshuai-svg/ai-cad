@@ -3,12 +3,15 @@
 ## 1. 开发基线
 
 ```bash
-npm install
-./scripts/setup_cadquery_env.sh
+npm ci
+bash scripts/setup_cadquery_env.sh
+.venv-cadquery/bin/python -m pip install pytest
 npm run check
 ```
 
 建议从 `codex/` 前缀分支开发。不要把 `.env.local`、虚拟环境、构建产物、个人训练记录或标准件缓存提交到 Git。
+
+Windows 先按[安装与运行](getting-started.md)设置 `CADQUERY_PYTHON`，再用该环境安装 pytest：`& ./.venv-cadquery/Scripts/python.exe -m pip install pytest`，随后运行 `npm run check`。
 
 ## 2. 代码结构
 

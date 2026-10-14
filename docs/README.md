@@ -1,5 +1,7 @@
 # AI-CAD 文档中心
 
+[English overview](../README.md) · [中文首页](../README.zh-CN.md) · [English setup](getting-started.en.md)
+
 本文档集描述 GitHub 主分支所对应的工程研发基线。文档以仓库当前实现为准；规划中的能力必须明确标注，不能写成已交付功能。
 
 ## 阅读顺序
@@ -13,6 +15,13 @@
 7. [FBS 系统规范](fbs-system.md)：理解 FBS 如何进入 CAD 计划和 BREP 验收。
 8. [参数化编辑](parametric-editing.md)：实现稳定特征 ID 和局部修订。
 9. [开发与测试](development.md)：修改代码、运行回归和维护文档。
+
+## 当前双内核与联合审查
+
+- [USD BRep 接入](usd-brep.md)：NVIDIA 原生模式、支持范围及后端差异。
+- [统一 BRep + 视觉审查](unified-brep-review.md)：几何证据、文件完整性、当前视觉与交付结论。
+- [FormaLatent](https://github.com/kkppshuai-svg/formalatent)：独立表征学习与检索项目。
+- [USD BRep Review](https://github.com/kkppshuai-svg/usd-brep-review)：独立审查通道；AICAD 当前保留工作台内实现。
 
 ## 文档约定
 

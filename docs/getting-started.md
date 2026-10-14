@@ -1,13 +1,16 @@
 # 安装与运行
 
+[中文首页](../README.zh-CN.md) · [English guide](getting-started.en.md)
+
 ## 1. 环境要求
 
 | 组件 | 要求 | 用途 |
 | --- | --- | --- |
-| 操作系统 | Ubuntu 22.04 或兼容 Linux | 当前主要研发环境 |
+| 操作系统 | Linux 或 Windows | 安装步骤分别见下文；Windows 使用显式 Python 路径 |
 | Node.js | 20 或更高版本 | Web 服务、前端依赖和测试 |
 | Python | Python 3，支持 `venv` | CadQuery、OCP 和训练脚本 |
-| Codex CLI | 已安装并完成登录 | 默认规划、修复和视觉审查模型入口 |
+| 模型提供器 | AI 功能需要配置 | 默认 Codex，支持按配置使用 DeepSeek；确定性示例无需 AI 调用 |
+| USD BRep | 可选，独立 Python 3.12 环境 | NVIDIA 原生实体与精确 USD 导出 |
 | FreeCAD | 可选，提供 `freecadcmd` | FCStd/FreeCAD 桥接与后续编辑 |
 
 ## 2. 获取源码
@@ -25,13 +28,26 @@ git switch feature/fbs-system
 
 ## 3. 安装依赖
 
+Linux：
+
 ```bash
-npm install
-chmod +x scripts/setup_cadquery_env.sh launch-ai-cad.sh stop-ai-cad.sh
-./scripts/setup_cadquery_env.sh
+npm ci
+bash scripts/setup_cadquery_env.sh
 ```
 
 脚本创建 `.venv-cadquery/`，安装 `requirements-cadquery.txt`，并在缺失时生成 `.env.local`。机器专用路径应写入 `.env.local`，不要写入代码默认值。
+
+Windows PowerShell：
+
+```powershell
+npm ci
+py -3.12 -m venv .venv-cadquery
+& ./.venv-cadquery/Scripts/python.exe -m pip install -r requirements-cadquery.txt
+$env:CADQUERY_PYTHON = (Resolve-Path ./.venv-cadquery/Scripts/python.exe).Path
+npm start
+```
+
+上述环境变量对当前终端有效。需要持久配置时，在 `.env.local` 保存 `CADQUERY_PYTHON`。默认服务地址为 `http://127.0.0.1:3101`。
 
 确认关键程序：
 
@@ -47,15 +63,19 @@ FreeCAD 为可选项；未安装时基础 CadQuery 构建仍可运行，但相�
 ## 4. 启动与停止
 
 ```bash
-./launch-ai-cad.sh     # 后台启动并打开浏览器
+bash launch-ai-cad.sh  # Linux 后台启动并打开浏览器
 npm start              # 前台启动，便于查看日志
 npm run dev            # Node watch 模式
-./stop-ai-cad.sh       # 停止后台服务
+bash stop-ai-cad.sh    # Linux 停止后台服务
 ```
 
 默认地址为 `http://127.0.0.1:3101`。后台服务日志位于 `logs/ai-cad.log`。
 
 ## 5. 首次验证
+
+先在页面点击“加载带孔板示例”。该路径使用确定性特征计划，无需调用 AI。点击“统一审查”时，可选择“仅核对几何证据”；完整交付范围还会调用视觉提供器。
+
+未配置 USD BRep 时使用 CadQuery。配置 `USD_BREP_PYTHON` 指向已安装 `requirements-usd-brep.txt` 的 Python 3.12 环境后，可选择 NVIDIA 原生模式；可用时默认选用，用户选择会保留。安装和当前特征范围见 [USD BRep 接入](usd-brep.md)。
 
 ```bash
 npm run check
@@ -68,7 +88,7 @@ curl http://127.0.0.1:3101/api/status
 生成一个 80 × 50 × 8 mm 的矩形安装板，中心有一个直径 10 mm 的贯穿孔，四角各有一个直径 5 mm 的安装孔，孔中心距相邻边 8 mm。
 ```
 
-成功结果应包含当前修订、参数化特征树、验证摘要和至少一个 STEP 产物。`assemblies/` 下会保存对应构建证据。
+CadQuery 参数化构建可产生修订、特征树、验证摘要和 STEP；NVIDIA 原生预览产生精确 USD BRep 和 STL，不提供 STEP/FCStd。`assemblies/` 保存构建证据。模型已显示不等于完整交付通过，以[统一审查](unified-brep-review.md)的几何和当前视觉结论为准。
 
 ## 6. 常见问题
 
