@@ -109,6 +109,7 @@ export async function buildValidatedAssembly({ plan, repairContext = {}, deps })
     });
     job.validationReport = validationReport;
     job.constraintReport = constraintReport;
+    if (deps.bindReviewEvidence) await deps.bindReviewEvidence(job);
 
     if (!canPromoteRevision(validationReport)) {
       const repairs = proposeDeterministicRepairs(validationReport, normalizedPlan);

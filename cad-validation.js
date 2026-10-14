@@ -1,3 +1,5 @@
+import { finitePositive } from "./review-policy.js";
+
 export function mergeValidationReports(inputs = {}) {
   const issues = [];
   const measurements = [];
@@ -44,13 +46,15 @@ export function mergeValidationReports(inputs = {}) {
 
 
 export function canPromoteRevision(report) {
-  return Boolean(report) && Number(report.blockingErrorCount || 0) === 0 && report.valid !== false;
+  return Boolean(report) && Object.hasOwn(report, "blockingErrorCount") && Number(report.blockingErrorCount) === 0 && report.valid !== false
+    && !(report.issues || []).some(issue => issue.severity === "error")
+    && (!report.review || report.review.geometryDecision === "pass");
 }
 
 export function validateFbsAcceptanceCoverage(plan = {}, validationReport = {}) {
   const checks = Array.isArray(plan?.concept?.acceptanceChecks) ? plan.concept.acceptanceChecks : [];
   if (!checks.length) return [];
-  const measurementIds = new Set((validationReport.measurements || []).map((measurement) => String(measurement.id || "")));
+  const measurementIds = new Set((validationReport.measurements || []).filter(measurement => measurement.status === "pass" && Number.isFinite(measurement.measured ?? measurement.value)).map((measurement) => String(measurement.id || "")));
   return checks.filter((check) => check?.measurementId && !measurementIds.has(String(check.measurementId))).map((check) => ({
     code: "FBS_ACCEPTANCE_UNMAPPED",
     severity: "error",
@@ -67,10 +71,13 @@ export function validateBrepReviewCoverage(plan = {}, buildSummary = {}) {
     const report = reports.get(partId);
     if (!report) continue;
     const facts = report.facts || {};
-    if (report.valid !== true) continue;
-    if (!(Number(facts.solidCount) >= 1)) issues.push({ code: "BREP_REVIEW_NO_SOLID_EVIDENCE", severity: "error", partId, message: "BREP审查缺少闭合实体证据" });
-    if (!(Number(facts.volume) > 0)) issues.push({ code: "BREP_REVIEW_NO_VOLUME_EVIDENCE", severity: "error", partId, message: "BREP审查缺少正体积证据" });
-    if (!Array.isArray(facts.bbox) || facts.bbox.length !== 3 || facts.bbox.some((value) => !(Number(value) > 0))) {
+    if (report.valid !== true) {
+      if (!(report.issues || []).some(issue => issue.severity === "error")) issues.push({ code: "BREP_REVIEW_UNVERIFIED", severity: "error", partId, message: "BREP审查没有明确通过的内核验证证据" });
+      continue;
+    }
+    if (!Number.isSafeInteger(facts.solidCount) || facts.solidCount < 1) issues.push({ code: "BREP_REVIEW_NO_SOLID_EVIDENCE", severity: "error", partId, message: "BREP审查缺少闭合实体证据" });
+    if (!finitePositive(facts.volume)) issues.push({ code: "BREP_REVIEW_NO_VOLUME_EVIDENCE", severity: "error", partId, message: "BREP审查缺少有限的正体积证据" });
+    if (!Array.isArray(facts.bbox) || facts.bbox.length !== 3 || facts.bbox.some(value => !finitePositive(value))) {
       issues.push({ code: "BREP_REVIEW_NO_BBOX_EVIDENCE", severity: "error", partId, message: "BREP审查缺少有效包围盒尺寸证据" });
     }
   }
@@ -78,9 +85,12 @@ export function validateBrepReviewCoverage(plan = {}, buildSummary = {}) {
 }
 
 export function validateStepRoundTrip(buildSummary = {}) {
-  const report = buildSummary.geometryValidation?.stepRoundTrip;
-  if (!report) return [{ code: "MISSING_STEP_ROUNDTRIP", severity: "error", message: "缺少 STEP round-trip 回归验证证据" }];
-  return (report.issues || []).map((issue) => ({ ...issue, code: issue.code || "STEP_ROUNDTRIP_FAILED" }));
+  const native = buildSummary.engine === "nvidia-usd-brep";
+  const report = native ? buildSummary.geometryValidation?.usdRoundTrip : buildSummary.geometryValidation?.stepRoundTrip;
+  if (!report) return [{ code: native ? "MISSING_USD_ROUNDTRIP" : "MISSING_STEP_ROUNDTRIP", severity: "error", message: "缺少实体文件回读验证证据" }];
+  const issues = (report.issues || []).map(issue => ({ ...issue, code: issue.code || "SERIALIZATION_ROUNDTRIP_FAILED" }));
+  if (report.valid !== true && !issues.some(issue => issue.severity === "error")) issues.push({ code: "UNVERIFIED_ROUNDTRIP", severity: "error", message: "实体文件回读结果未明确验证通过" });
+  return issues;
 }
 
 
@@ -89,10 +99,11 @@ export function validateBuildEvidence(plan, buildSummary = {}) {
   const plannedIds = new Set((plan.parts || []).map((part) => part.id));
   const builtParts = new Map((buildSummary.parts || []).map((part) => [part.id, part]));
   const geometryReports = new Map((buildSummary.geometryValidation?.parts || []).map((report) => [report.partId, report]));
-  if (typeof buildSummary.stepPath !== "string" || !buildSummary.stepPath) issues.push({ code: "MISSING_ASSEMBLY_STEP", severity: "error", message: "Build did not produce an assembly STEP artifact" });
+  const native = buildSummary.engine === "nvidia-usd-brep";
+  if (native ? !buildSummary.usdBrepPath : typeof buildSummary.stepPath !== "string" || !buildSummary.stepPath) issues.push({ code: native ? "MISSING_NATIVE_BREP" : "MISSING_ASSEMBLY_STEP", severity: "error", message: "Build did not produce the precise solid artifact" });
   for (const partId of plannedIds) {
     const built = builtParts.get(partId);
-    if (!built?.localStepPath) issues.push({ code: "MISSING_PART_ARTIFACT", severity: "error", partId, message: "Planned part has no local STEP artifact" });
+    if (native ? !built?.localUsdBrepPath : !built?.localStepPath) issues.push({ code: "MISSING_PART_ARTIFACT", severity: "error", partId, message: "Planned part has no precise solid artifact" });
     const geometry = geometryReports.get(partId);
     if (!geometry) issues.push({ code: "MISSING_GEOMETRY_VALIDATION", severity: "error", partId, message: "Planned part has no geometry validation report" });
     else if (Number(geometry.blockingErrorCount || 0) > 0 && !(geometry.issues || []).some((issue) => issue.severity === "error")) {

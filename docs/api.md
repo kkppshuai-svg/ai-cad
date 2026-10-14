@@ -38,7 +38,8 @@ X-AI-CAD-Token: <requestToken>
 | POST | `/api/assembly/:id/edit` | 应用局部 `editPatch` |
 | POST | `/api/assembly/:id/revert` | 回退到指定修订 |
 | POST | `/api/assembly/repair` | 重新构建 `validation_failed` 任务 |
-| POST | `/api/visual-review` | 对当前工程预览执行视觉审查 |
+| POST | `/api/review` | 联合 BRep + 视觉审查；默认 delivery，runVisual + screenshots 执行视觉检查，详见[协议](unified-brep-review.md) |
+| POST | `/api/visual-review` | 对当前工程预览执行视觉审查，并更新统一交付结论 |
 | POST | `/api/visual-review/repair` | 将审查报告转为内部修复轮次 |
 | POST | `/api/visual-review/improve` | 选择可操作发现并生成验证后的修订 |
 | POST | `/api/preview` | 从零件特征 JSON 构建临时预览 |
@@ -49,6 +50,9 @@ X-AI-CAD-Token: <requestToken>
 | POST | `/api/rate` | 保存人工评分 |
 | GET/POST | `/api/training/session` | 恢复或保存连续训练会话 |
 | GET | `/api/events` | 订阅 SSE 事件流 |
+| POST | `/api/usd/export` | 使用 NVIDIA USD BRep 导出当前成功修订的 USD 网格 |
+| POST | `/api/usd/generate` | AI 规划单零件并通过 NVIDIA USD BRep 原生构建实体 |
+| POST | `/api/kernels/compare` | 同一参数在两个内核独立建模并比较实测指标 |
 
 `POST /api/generate` 是面向底层计划生成的兼容入口；正常产品链路应优先使用 `/api/chat`。
 

@@ -1,4 +1,11 @@
 import { safePartId } from "./plan-validation.js";
+import { createUsdBrepBridge } from "./usd-brep-bridge.js";
+import { buildKernelComparison } from "./kernel-comparison.js";
+import { UnifiedReviewChannel } from "./unified-review-channel.js";
+import { composeAssemblyValidationReport } from "./assembly-validation-report.js";
+import { analyzeAssemblyConstraints } from "./assembly-constraints.js";
+import { attachUnifiedDecision, reviewRevisionId } from "./review-policy.js";
+import { runCombinedReview } from "./combined-review.js";
 import { loadEnvFile, buildChildEnv, createProcessRunner } from "./runtime-process.js";
 import { createCadSearch } from "./cad-search.js";
 import { validateAssemblyPlan, normalizePlanShape, normalizeInertial, normalizePose, safeSlug, safeKinematicName } from "./assembly-plan.js";
@@ -54,6 +61,8 @@ import { CadLatentTrainingManager } from "./cad-latent-training.js";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 await loadEnvFile(path.join(__dirname, ".env.local"));
 const runProcess = createProcessRunner(__dirname);
+const usdBrep = createUsdBrepBridge({ python: process.env.USD_BREP_PYTHON || "", rootDir: __dirname, runProcess });
+const unifiedReview = new UnifiedReviewChannel();
 const { searchCadReferences, publicSearch, formatSearchContextForPrompt, tokenizeSearchQuery, hasProxyEnv, webSearchProvider, webSearchMaxResults, webSearchTimeoutMs, webSearchCurlFallback } = createCadSearch({ runProcess });
 
 const publicDir = path.join(__dirname, "public");
@@ -142,6 +151,8 @@ const mimeTypes = {
   ".zip": "application/zip",
   ".step": "model/step",
   ".stp": "model/step",
+  ".usda": "application/octet-stream",
+  ".py": "text/plain; charset=utf-8",
   ".FCStd": "application/octet-stream"
 };
 
@@ -227,7 +238,10 @@ async function handleApi(req, res, url) {
     if (!job) return json(res, 404, { error: "Assembly job not found" });
     assemblyJobs.set(job.id, job);
     if (parametricRoute.action === "feature-tree") return json(res, 200, featureTreePayload(job));
-    if (parametricRoute.action === "validation") return json(res, 200, validationPayload(job));
+    if (parametricRoute.action === "validation") return withAssemblyRevisionLock(assemblyDir, job.id, async () => {
+      job.latestUnifiedReview = await unifiedReview.review(job);
+      return json(res, 200, { ...validationPayload(job), ...job.latestUnifiedReview });
+    });
     if (parametricRoute.action === "revisions") return json(res, 200, { assemblyId: job.id, currentRevision: job.currentRevision || null, revisions: await listRevisions(assemblyDir, job.id) });
     if (parametricRoute.action === "edit") {
       const body = await readJson(req);
@@ -252,8 +266,13 @@ async function handleApi(req, res, url) {
       if (!revisionId) return json(res, 400, { error: "revisionId is required" });
       const reverted = await withAssemblyRevisionLock(assemblyDir, job.id, async () => {
         const state = await loadRevisionState(assemblyDir, job.id, revisionId);
+        const staging = structuredClone(job);
+        restoreJobFromRevisionState(staging, revisionId, state);
+        const audit = await unifiedReview.review(staging);
+        if (!canPromoteRevision(audit)) throw Object.assign(new Error("Target revision failed unified geometry review; rebuild its evidence before reverting"), { status: 422 });
         const result = await revertRevision(assemblyDir, job.id, revisionId);
         restoreJobFromRevisionState(job, revisionId, state);
+        job.latestUnifiedReview = audit;
         return result;
       });
       publish("assembly:done", publicAssembly(job));
@@ -271,6 +290,7 @@ async function handleApi(req, res, url) {
 async function handleStatus(req, res, url) {
   return json(res, 200, {
     ok: true,
+    usdBrep: await usdBrep.status(),
     cadqueryPython: publicCommandName(cadqueryPython),
     codexBin: publicCommandName(codexBin),
     codexModel,
@@ -311,9 +331,134 @@ async function handleLatentRetrain(req, res, url) {
 // POST /api/preview
 async function handlePreview(req, res, url) {
   const body = await readJson(req);
+  if (body.engine === "usd-brep") {
+    return json(res, 200, await buildNativeUsdPreview(body.part || body.code));
+  }
+  if (body.engine && body.engine !== "cadquery") return json(res, 400, { error: "Unknown modeling engine" });
   const part = parseFeaturePart(body.part || body.code);
   const preview = await buildCadQueryPreview(part);
   return json(res, 200, preview);
+}
+
+async function buildNativeUsdPreview(input) {
+  const raw = typeof input === "string" ? JSON.parse(input) : input;
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) throw Object.assign(new Error("Part feature JSON is required"), { status: 400 });
+  if (raw.mode === "standard_part") throw Object.assign(new Error("Native USD BRep does not yet import STEP parts"), { status: 422 });
+  let part;
+  try {
+    part = normalizeParametricPlan({ parts: [{ ...raw, id: raw.id || "native_part", name: raw.name || "NVIDIA native part" }] }).parts[0];
+  } catch (error) { throw Object.assign(error, { status: 422 }); }
+  const id = `${Date.now()}-native-${randomUUID().slice(0, 8)}`;
+  const outputDir = path.join(assemblyDir, id);
+  await mkdir(outputDir, { recursive: true });
+  const report = await usdBrep.buildBrep({ part, outputDir });
+  const job = { id, outputDir, status: "done", engine: "nvidia-usd-brep", plan: { parts: [part] }, parts: [part],
+    stlPath: path.join(outputDir, "native-preview.stl") };
+  job.usdBrepPath = path.join(outputDir, "native-solid.usda");
+  job.parts = [{ ...part, localUsdBrepPath: job.usdBrepPath }];
+  job.constraintReport = analyzeAssemblyConstraints(job.plan);
+  const nativeGeometry = { partId: part.id, valid: report.manifoldSolid, issues: [], measurements: [], facts: report.facts };
+  for (const [index, measurement] of (part.measurements || []).entries()) {
+    const id = measurement.id || `measurement-${index+1}`;
+    const kind = measurement.kind || "bbox";
+    const axis = {x:0,y:1,z:2}[measurement.axis || "z"];
+    const measured = kind === "volume" ? report.facts.volume : kind === "bbox" && axis !== undefined ? report.facts.bbox[axis] : null;
+    const target = Number(measurement.target ?? measurement.value), tolerance = Number(measurement.tolerance ?? 0.01);
+    const unitSupported = !measurement.unit || (kind === "volume" ? ["mm3","mm³"].includes(measurement.unit) : measurement.unit === "mm");
+    // A conservative surface-union box is diagnostic, not an exact trimmed-size proof.
+    const verified = kind === "volume" && Number.isFinite(measured) && Number.isFinite(target) && Number.isFinite(tolerance) && tolerance >= 0 && unitSupported;
+    const passed = verified && Math.abs(measured-target) <= tolerance;
+    nativeGeometry.measurements.push({ ...measurement, id, measured, target, tolerance,
+      source: kind === "volume" ? "native-signed-volume" : "native-conservative-bounding-box",
+      status: passed ? "pass" : verified ? "fail" : "unverified" });
+    if (!passed) nativeGeometry.issues.push({ code: verified ? "DIMENSION_MISMATCH" : "NATIVE_MEASUREMENT_UNVERIFIED",
+      severity: measurement.required === false ? "warning" : "error", measurementId: id,
+      measured, target, tolerance, message: verified ? "Native BRep dimension is outside the requested tolerance" : "Required native measurement has no exact evidence; conservative bounds are diagnostic only" });
+  }
+  job.validationReport = composeAssemblyValidationReport({ plan: job.plan, constraintReport: job.constraintReport, assemblyId: id,
+    buildSummary: { engine: job.engine, usdBrepPath: job.usdBrepPath, parts: job.parts,
+      geometryValidation: { parts: [nativeGeometry], interferences: [], usdRoundTrip: report.usdRoundTrip,
+        reviewStages: [{stage:"brepcheck",status:report.manifoldSolid ? "pass" : "fail"}, {stage:"topology_facts",status:"pass"}] } } });
+  await unifiedReview.bind(job);
+  const nativeAudit = await unifiedReview.review(job);
+  job.latestUnifiedReview = nativeAudit;
+  if (nativeAudit.status !== "pass") job.status = "validation_failed";
+  assemblyJobs.set(id, job);
+  await writeFile(path.join(outputDir, "native-feature-plan.json"), JSON.stringify(part, null, 2), "utf8");
+  await copyFile(path.join(__dirname, "scripts", "usd_brep_build.py"), path.join(outputDir, "usd_brep_build.py"));
+  await copyFile(path.join(__dirname, "scripts", "usd_brep_export.py"), path.join(outputDir, "usd_brep_export.py"));
+  await copyFile(path.join(__dirname, "scripts", "brep_review_core.py"), path.join(outputDir, "brep_review_core.py"));
+  return { id, status: job.status, reviewRevisionId: reviewRevisionId(job), engine: "nvidia-usd-brep", part, nativeReport: report, unifiedReview: nativeAudit,
+    stlUrl: artifactUrl(job, job.stlPath), usdBrepUrl: artifactUrl(job, path.join(outputDir, "native-solid.usda")),
+    usdMeshUrl: artifactUrl(job, path.join(outputDir, "native-mesh.usda")),
+    codeUrl: artifactUrl(job, path.join(outputDir, "usd_brep_build.py")),
+    reportUrl: artifactUrl(job, path.join(outputDir, "native-build-report.json")) };
+}
+
+async function handleUnifiedReview(req, res) {
+  const body = await readJson(req);
+  const id = String(body.assemblyId || "");
+  if (!/^[A-Za-z0-9_-]+$/.test(id)) return json(res, 400, { error: "Invalid assemblyId" });
+  return withAssemblyRevisionLock(assemblyDir, id, async () => {
+    const job = assemblyJobs.get(id) || await restoreAssemblyJob(assemblyDir, id).catch(() => null);
+    if (!job) return json(res, 404, { error: "Assembly not found" });
+    assemblyJobs.set(id, job);
+    const report = await runCombinedReview({ job, channel: unifiedReview, profile: body.profile || "delivery",
+      refresh: body.refresh === true, expectedRevision: body.revisionId || null,
+      visualRequested: body.runVisual === true, screenshots: body.screenshots,
+      runVisual: ({ screenshots, revisionId }) => runVisualReview({ assemblyId: id, screenshots, revisionId,
+        conversationId: body.conversationId, userRequest: body.userRequest }) });
+    job.latestUnifiedReview = report;
+    await writeFile(path.join(job.outputDir, "unified-review.json"), JSON.stringify(report, null, 2), "utf8");
+    return json(res, 200, { ...report, visualReview: publicVisualReview(job.visualReview),
+      reportUrl: artifactUrl(job, path.join(job.outputDir, "unified-review.json")) });
+  });
+}
+
+async function handleKernelCompare(req, res) {
+  const body = await readJson(req);
+  const raw = body.part || (typeof body.code === "string" ? JSON.parse(body.code) : body.code);
+  const plan = normalizeParametricPlan({ parts: [{ ...raw, id: raw?.id || "comparison_part", name: raw?.name || "comparison part" }] });
+  plan.constraints = body.constraints || (body.constraintMode === "fixed" ? [{ id: "comparison-fixed", type: "fixed", from: { partId: "world" }, to: { partId: plan.parts[0].id } }] : []);
+  const part = plan.parts[0];
+  const engines = await Promise.all(["usd-brep", "cadquery"].map(async engine => {
+    const start = performance.now();
+    try {
+      const preview = engine === "usd-brep" ? await buildNativeUsdPreview(part) : await buildCadQueryPreview(parseFeaturePart(part));
+      return { engine, status: preview.status === "done" ? "passed" : "failed", durationMs: performance.now() - start, preview,
+        ...(preview.status !== "done" ? { error: "Build completed but unified BRep review did not pass" } : {}) };
+    } catch (error) {
+      return { engine, status: "failed", durationMs: performance.now() - start, error: error.message };
+    }
+  }));
+  const report = buildKernelComparison(plan, engines);
+  const directory = path.join(assemblyDir, `${Date.now()}-comparison-${randomUUID().slice(0, 8)}`);
+  await mkdir(directory, { recursive: true });
+  await writeFile(path.join(directory, "comparison.json"), JSON.stringify(report, null, 2), "utf8");
+  return json(res, 200, { ...report, reportUrl: `/assemblies/${path.basename(directory)}/comparison.json` });
+}
+
+async function handleNativeUsdGenerate(req, res) {
+  const body = await readJson(req);
+  const message = sanitizeText(body.message || "", 4000);
+  if (!message) return json(res, 400, { error: "Message is required" });
+  const conversationId = sanitizeText(body.conversationId || randomUUID(), 120);
+  const images = await persistChatImages(conversationId, body.images);
+  const prompt = [
+    'Plan one mechanical part for NVIDIA USD BRep/SMLib. Return JSON only: {"reply":"...","part":{...}}.',
+    'Lengths are mm, rotations degrees. Part has id, name, primitives, features.',
+    'Supported primitives: box {size:[x,y,z],center:true}, cylinder {radius,height,center:true}, sphere {radius}. Primitive pose is {translate:[x,y,z],rotate:[rx,ry,rz]}.',
+    'Supported features: hole {diameter,depth,axis:"z",center:[x,y,z]}, cut_box {size,center,rotate}, add {primitive}. Hole cutters extend depth in both directions.',
+    'Gears, assemblies, STEP import, slots, fillets, patterns and extrusions are not implemented in this adapter. For unsupported requests return {"error":"explanation"}; never simplify or use CadQuery.',
+    'Preserve the previous part for parameter modifications; create a new part for a new design.',
+    `Previous part: ${JSON.stringify(body.part || null)}`, `Request: ${message}`
+  ].join("\n");
+  const generated = await invokeLlmText({ label: "nvidia-native-planner", threadKey: `native:${conversationId}`,
+    prompt, images, timeoutMs: codexPlannerTimeoutMs, maxBuffer: 200000, fallbackWarning: "Native planner transport fallback" });
+  const candidate = extractJsonObject(generated.text);
+  if (candidate.error) return json(res, 422, { error: sanitizeText(candidate.error, 1000) });
+  if (!candidate.part) return json(res, 422, { error: "Native planner did not return a supported part" });
+  return json(res, 200, { preview: await buildNativeUsdPreview(candidate.part), reply: sanitizeText(candidate.reply || "NVIDIA USD BRep 已完成实体建模。", 1000) });
 }
 
 // POST /api/search
@@ -479,6 +624,21 @@ async function handleLatestAssembly(req, res, url) {
 }
 
 // GET /api/assembly/:id
+async function handleUsdExport(req, res) {
+  const body = await readJson(req);
+  const id = String(body.assemblyId || "");
+  if (!/^[a-zA-Z0-9_-]+$/.test(id)) return json(res, 400, { error: "Invalid assemblyId" });
+  return withAssemblyRevisionLock(assemblyDir, id, async () => {
+    const job = assemblyJobs.get(id) || await restoreAssemblyJob(assemblyDir, id).catch(() => null);
+    if (!job) return json(res, 404, { error: "Assembly job not found" });
+    if (job.status !== "done" || !job.stlPath) return json(res, 409, { error: "Complete the model build before exporting USD" });
+    if ((body.revisionId || null) !== (job.currentRevision || null)) return json(res, 409, { error: "The model revision changed; refresh before exporting USD" });
+    const output = path.join(job.outputDir, `usd-mesh-${randomUUID()}.usda`);
+    const report = await usdBrep.exportMesh({ source: job.stlPath, output, outputDir: job.outputDir });
+    return json(res, 200, { ...report, usdUrl: artifactUrl(job, output), revisionId: job.currentRevision || null });
+  });
+}
+
 async function handleAssemblyById(req, res, url) {
   const id = url.pathname.split("/").pop();
   const job = assemblyJobs.get(id) || await restoreAssemblyJob(assemblyDir, id).catch(() => null);
@@ -491,6 +651,10 @@ async function handleAssemblyById(req, res, url) {
 // of the /api/assembly/ prefix that would otherwise swallow it.
 const apiRoutes = createRouteTable([
   { method: "GET", path: "/api/status", handler: handleStatus },
+  { method: "POST", path: "/api/usd/export", handler: handleUsdExport },
+  { method: "POST", path: "/api/usd/generate", handler: handleNativeUsdGenerate },
+  { method: "POST", path: "/api/kernels/compare", handler: handleKernelCompare },
+  { method: "POST", path: "/api/review", handler: handleUnifiedReview },
   { method: "GET", path: "/api/latent/training", handler: handleLatentTrainingStatus },
   { method: "POST", path: "/api/latent/retrain", handler: handleLatentRetrain },
   { method: "POST", path: "/api/preview", handler: handlePreview },
@@ -1218,8 +1382,10 @@ async function buildServerCadReferenceContext(message, conversation) {
 }
 
 async function queueLatentLearning(job, source) {
-  if (!job || job.status !== "done" || !job.stepPath || !canPromoteRevision(job.validationReport || {})) return null;
+  if (!job || job.status !== "done" || !job.stepPath) return null;
   try {
+    job.latestUnifiedReview = await unifiedReview.review(job);
+    if (!canPromoteRevision(job.latestUnifiedReview)) return null;
     const result = await latentTraining.enqueueAcceptedAssembly({ job, source });
     if (result.queued) publish("latent:training:queued", { status: "queued", source, assemblyId: job.id, revisionId: job.currentRevision, queueLength: result.status?.queueLength || 0 });
     return result;
@@ -1376,6 +1542,10 @@ function assemblyBuildDeps() {
     registerJob: (job) => assemblyJobs.set(job.id, job),
     publish,
     publicAssembly,
+    bindReviewEvidence: async job => {
+      await unifiedReview.bind(job);
+      Object.assign(job.validationReport, await unifiedReview.review(job));
+    },
     queueLatentLearning
   };
 }
@@ -1449,6 +1619,7 @@ async function executeParametricRevisionBuild({ plan, outputDir }) {
 }
 
 function applyBuildSummaryToJob(job, buildSummary) {
+  delete job.latestUnifiedReview;
   job.parts = (job.plan?.parts || []).map((part) => {
     const previous = (job.parts || []).find((item) => item.id === part.id) || {};
     const output = (buildSummary.parts || []).find((item) => item.id === part.id) || {};
@@ -1499,7 +1670,7 @@ async function refreshAssemblyDerivatives(job) {
   job.status = "done";
 }
 
-async function finalizeParametricRevisionBuild(job, { plan, buildSummary, outputDir, revisionId }) {
+async function finalizeParametricRevisionBuild(job, { plan, buildSummary, outputDir, revisionId, validationReport }) {
   const staging = {
     ...job,
     plan,
@@ -1508,6 +1679,10 @@ async function finalizeParametricRevisionBuild(job, { plan, buildSummary, output
     parts: (job.parts || []).map((part) => ({ ...part }))
   };
   applyBuildSummaryToJob(staging, buildSummary);
+  staging.validationReport = validationReport;
+  staging.currentRevision = revisionId;
+  await unifiedReview.bind(staging);
+  Object.assign(staging.validationReport, await unifiedReview.review(staging));
   await refreshAssemblyDerivatives(staging);
   return revisionDeliveryState(staging);
 }
@@ -1592,11 +1767,25 @@ async function buildCadQueryPreview(part) {
   previewJob.kinematicPackagePath = kinematics?.packagePath || null;
   previewJob.kinematicArchivePath = kinematics?.archivePath || null;
   assemblyJobs.set(id, previewJob);
+  previewJob.validationReport = composeAssemblyValidationReport({ plan: manifest, buildSummary,
+    constraintReport: analyzeAssemblyConstraints(manifest), assemblyId: id });
+  await unifiedReview.bind(previewJob);
+  const previewReview = await unifiedReview.review(previewJob);
+  previewJob.latestUnifiedReview = previewReview;
+  if (previewReview.status !== "pass") previewJob.status = "validation_failed";
+  await saveCadqueryExample({ plan: manifest, directory: outDir, builderPath: path.join(__dirname, "scripts", "cadquery_build.py") });
 
   return {
     id,
-    status: "done",
+    status: previewJob.status,
+    reviewRevisionId: reviewRevisionId(previewJob),
     part: normalized,
+    engine: "cadquery",
+    geometryFacts: output.geometryValidation?.facts || null,
+    unifiedReview: previewReview,
+    geometryValid: Boolean(output.geometryValidation?.valid),
+    modelingMs: output.modelingMs,
+    codeUrl: `/assemblies/${id}/cadquery_build.py`,
     stlUrl: output.stlPath ? `/assemblies/${id}/${path.basename(output.stlPath)}` : null,
     stepUrl: output.stepPath ? `/assemblies/${id}/${path.basename(output.stepPath)}` : null,
     assemblyStlUrl: buildSummary.stlPath ? `/assemblies/${id}/${path.basename(buildSummary.stlPath)}` : null,
@@ -1661,7 +1850,8 @@ async function runVisualReview(body = {}) {
     error.code = "ASSEMBLY_NOT_READY";
     throw error;
   }
-  const reviewedRevisionId = job.currentRevision || job.pendingRevision || `validation-failed:${job.id}`;
+  const reviewedRevisionId = reviewRevisionId(job);
+  if (body.revisionId && body.revisionId !== reviewedRevisionId) throw Object.assign(new Error("Visual review revision is stale"), { status: 409 });
 
   const screenshots = await persistVisualReviewScreenshots(job, body.screenshots);
   if (!screenshots.length) throw new Error("At least one visual review screenshot is required");
@@ -1669,7 +1859,7 @@ async function runVisualReview(body = {}) {
   const userRequest = findLatestUserRequest(body.conversationId) || sanitizeText(body.userRequest || "", 2000);
   const instruction = buildVisualReviewInstruction({
     userRequest,
-    plan: body.plan || job.plan,
+    plan: job.plan,
     assembly: publicAssembly(job),
     screenshots
   });
@@ -1686,12 +1876,14 @@ async function runVisualReview(body = {}) {
   const report = normalizeVisualReviewResult(parsed, {
     assemblyId,
     revisionId: reviewedRevisionId,
-    plan: body.plan || job.plan,
+    plan: job.plan,
     assembly: publicAssembly(job),
     screenshots,
     reviewedAt: new Date().toISOString()
   });
+  if (reviewRevisionId(job) !== reviewedRevisionId) throw Object.assign(new Error("Model changed during visual review"), { status: 409 });
   job.visualReview = await persistVisualReviewReport(job, report);
+  job.latestUnifiedReview = await unifiedReview.review(job, { profile: "delivery" });
   publish("assembly:review_done", publicAssembly(job));
   return publicVisualReview(job.visualReview);
 }
@@ -2079,7 +2271,7 @@ function publicAssembly(job) {
     relations: job.plan?.relations || [],
     joints: job.plan?.joints || [],
     constraints: job.plan?.constraints || [],
-    validation: job.validationReport || null,
+    validation: job.latestUnifiedReview || job.validationReport || null,
     repairAudit: job.repairAudit || [],
     constraintAnalysis: job.constraintReport || null,
     lastRevisionBuild: job.lastRevisionBuild || null,
@@ -2126,12 +2318,14 @@ function publicAssembly(job) {
 }
 
 function assemblyAcceptanceGate(job) {
-  const validation = job?.validationReport || {};
+  const validation = job?.latestUnifiedReview || job?.validationReport || {};
   const geometryPassed = job?.status === "done" && canPromoteRevision(validation);
-  const visualCurrent = Boolean(job?.visualReview?.revisionId && String(job.visualReview.revisionId) === String(job.currentRevision));
-  const visualPassed = visualCurrent && (job.visualReview?.status === "pass" || job.visualReview?.recommendedNextAction === "accept");
+  const visualCurrent = Boolean(job?.visualReview?.revisionId && String(job.visualReview.revisionId) === String(reviewRevisionId(job)));
+  const decision = attachUnifiedDecision(validation, { engine: job.engine, visualReview: job.visualReview, revisionId: reviewRevisionId(job) });
+  const visualPassed = visualCurrent && decision.review.visualDecision === "pass";
   return {
-    passed: geometryPassed && visualPassed,
+    passed: geometryPassed && visualPassed && decision.review.deliveryDecision === "pass",
+    review: decision.review,
     geometry: {
       passed: geometryPassed,
       errors: Number(validation.blockingErrorCount || 0),
@@ -2385,7 +2579,7 @@ async function buildKinematicPackage(job) {
   ].join("\n"), "utf8");
 
   const archivePath = path.join(outDir, "assembly_kinematic_package.zip");
-  await runProcess("zip", ["-qr", archivePath, "assembly_kinematic_package"], {
+  await runProcess(cadqueryPython, [path.join(__dirname, "scripts", "package_archive.py"), outDir, archivePath], {
     cwd: outDir,
     timeoutMs: 30000,
     maxBuffer: 50000

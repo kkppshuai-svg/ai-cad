@@ -6,10 +6,13 @@
 
 ```text
 validationReport.blockingErrorCount === 0
-validationReport.valid !== false
+validationReport.valid === true
+validationReport.review.geometryDecision === "pass"
 ```
 
 错误（error）阻断晋级；警告（warning）保留用于工程决策；信息（info）记录预期接触等非阻断事实。
+
+预览、初次构建和参数编辑共用[统一 BRep 审查](unified-brep-review.md)。查询会核对产物 SHA-256 和计划；完整交付另需当前修订视觉通过。
 
 ## 2. 六层审查链
 

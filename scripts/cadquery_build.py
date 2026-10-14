@@ -9,10 +9,14 @@ import time
 
 import cadquery as cq
 from OCP.ShapeFix import ShapeFix_Shape
+from OCP.BRepCheck import BRepCheck_Analyzer
+from OCP.BRepBndLib import BRepBndLib
+from OCP.Bnd import Bnd_Box
+from brep_review_core import compare_geometry
 
 
 FINISH_FEATURES = {"fillet", "chamfer"}
-BUILDER_VERSION = "cadquery-parametric-v9"
+BUILDER_VERSION = "cadquery-parametric-v10-unified-review"
 ENABLE_FINISH_FEATURES = os.environ.get("AICAD_ENABLE_FINISH_FEATURES") == "1"
 PART_COLORS = [
     (0.31, 0.60, 0.96),
@@ -527,17 +531,27 @@ def validate_node_shape(feature_id, workplane):
         raise FeatureBuildError(feature_id, "operation produced non-positive volume")
 
 
+def precise_bounds(shape):
+    box = Bnd_Box()
+    # Ignore display triangulation and entity-tolerance padding in audit metrics.
+    BRepBndLib.AddOptimal_s(shape.wrapped, box, False, False)
+    return cq.BoundBox(box)
+
+
 def shape_facts(workplane):
     if workplane is None or not workplane.vals():
         return None
     shape = workplane.val()
-    bounds = shape.BoundingBox()
+    bounds = precise_bounds(shape)
     return {
         "solidCount": len(workplane.solids().vals()),
         "faceCount": len(workplane.faces().vals()),
         "edgeCount": len(workplane.edges().vals()),
-        "volume": sum(float(solid.Volume()) for solid in workplane.solids().vals()),
+        "volume": sum(float(solid.Volume(tol=1e-9)) for solid in workplane.solids().vals()),
         "bbox": [float(bounds.xlen), float(bounds.ylen), float(bounds.zlen)],
+        "boundsMin": [float(bounds.xmin), float(bounds.ymin), float(bounds.zmin)],
+        "boundsMax": [float(bounds.xmax), float(bounds.ymax), float(bounds.zmax)],
+        "center": list(shape.Center().toTuple()),
     }
 
 
@@ -552,7 +566,8 @@ def heal_workplane(workplane):
         return workplane, result
     shape = workplane.val()
     try:
-        if shape.isValid() and workplane.solids().vals():
+        if BRepCheck_Analyzer(shape.wrapped, True, True, True).IsValid() and workplane.solids().vals():
+            result["validated"] = True
             return workplane, result
     except Exception as exc:
         result["message"] = "initial BRepCheck failed: {}".format(exc)
@@ -562,7 +577,8 @@ def heal_workplane(workplane):
         fixer.Perform()
         healed = cq.Shape.cast(fixer.Shape())
         healed_wp = cq.Workplane("XY").newObject([healed])
-        if healed.isValid() and healed_wp.solids().vals() and sum(float(s.Volume()) for s in healed_wp.solids().vals()) > 1e-9:
+        if BRepCheck_Analyzer(healed.wrapped, True, True, True).IsValid() and healed_wp.solids().vals() and sum(float(s.Volume(tol=1e-9)) for s in healed_wp.solids().vals()) > 1e-9:
+            result["validated"] = True
             result["status"] = "applied"
             result["message"] = "OCCT ShapeFix_Shape produced a valid closed solid"
             return healed_wp, result
@@ -574,7 +590,7 @@ def heal_workplane(workplane):
     return workplane, result
 
 
-def step_roundtrip_check(path, label):
+def step_roundtrip_check(path, label, original_facts=None):
     evidence = {"label": label, "path": path, "valid": False, "facts": None, "error": None}
     if not path or not os.path.isfile(path):
         evidence["error"] = "STEP artifact missing"
@@ -582,7 +598,9 @@ def step_roundtrip_check(path, label):
     try:
         imported = cq.importers.importStep(path)
         evidence["facts"] = shape_facts(imported)
-        evidence["valid"] = bool(imported.vals()) and all(shape.isValid() for shape in imported.vals()) and bool(imported.solids().vals()) and float(evidence["facts"]["volume"]) > 1e-9
+        evidence["valid"] = bool(imported.vals()) and all(BRepCheck_Analyzer(shape.wrapped, True, True, True).IsValid() for shape in imported.vals()) and bool(imported.solids().vals()) and float(evidence["facts"]["volume"]) > 1e-9
+        evidence["comparison"] = compare_geometry(original_facts, evidence["facts"])
+        evidence["valid"] = evidence["valid"] and evidence["comparison"]["valid"]
         if not evidence["valid"]:
             evidence["error"] = "round-tripped STEP failed BRep/solid/volume checks"
     except Exception as exc:
@@ -590,9 +608,9 @@ def step_roundtrip_check(path, label):
     return evidence
 
 
-def step_roundtrip_report(step_path, part_outputs):
-    parts = [step_roundtrip_check(item.get("localStepPath"), str(item.get("id"))) for item in part_outputs]
-    assembly = step_roundtrip_check(step_path, "assembly")
+def step_roundtrip_report(step_path, part_outputs, assembly_facts=None):
+    parts = [step_roundtrip_check(item.get("localStepPath"), str(item.get("id")), item.get("geometryValidation", {}).get("facts")) for item in part_outputs]
+    assembly = step_roundtrip_check(step_path, "assembly", assembly_facts)
     issues = [
         {"code": "STEP_ROUNDTRIP_FAILED", "severity": "error", "partId": item["label"], "message": item["error"]}
         for item in [assembly] + parts if not item["valid"]
@@ -956,16 +974,19 @@ def has_patterned_gear_teeth(part):
     )
 
 
-def geometry_validation(part_id, workplane, tolerance=1e-7, trace=None, part=None):
+def geometry_validation(part_id, workplane, tolerance=1e-7, trace=None, part=None, pre_healing=None):
     issues = []
-    workplane, healing = heal_workplane(workplane)
+    if pre_healing is None:
+        workplane, healing = heal_workplane(workplane)
+    else:
+        healing = pre_healing
     values = workplane.vals() if workplane is not None else []
     if not values:
         issues.append({"code": "NO_SHAPE", "severity": "error", "message": "No BREP shape was produced"})
         return {"partId": part_id, "valid": False, "blockingErrorCount": 1, "issues": issues, "facts": {}, "shapeHealing": healing, "reviewStages": [{"stage": "brepcheck", "status": "fail"}, {"stage": "shape_healing", "status": healing["status"]}]}
     shape = workplane.val()
     try:
-        shape_valid = bool(shape.isValid())
+        shape_valid = healing.get("validated") is True
     except Exception:
         shape_valid = False
     if not shape_valid:
@@ -974,10 +995,13 @@ def geometry_validation(part_id, workplane, tolerance=1e-7, trace=None, part=Non
     if not solids:
         issues.append({"code": "NO_SOLID", "severity": "error", "message": "BREP contains no closed solid"})
         issues.append({"code": "OPEN_SHELL", "severity": "error", "message": "Geometry is an open shell or surface"})
-    volume = sum(max(float(solid.Volume()), 0.0) for solid in solids)
-    if solids and volume <= tolerance:
+    volumes = [float(solid.Volume(tol=1e-9)) for solid in solids]
+    volume = sum(volumes)
+    if any(not math.isfinite(value) or value <= 0 for value in volumes):
+        issues.append({"code": "INVALID_SIGNED_VOLUME", "severity": "error", "message": "A solid has non-positive or non-finite signed volume"})
+    if solids and volume <= 1e-9:
         issues.append({"code": "NON_POSITIVE_VOLUME", "severity": "error", "message": "Solid volume is not positive"})
-    bbox = shape.BoundingBox()
+    bbox = precise_bounds(shape)
     dimensions = [float(bbox.xlen), float(bbox.ylen), float(bbox.zlen)]
     if solids and min(dimensions) <= tolerance:
         issues.append({"code": "ZERO_THICKNESS_SUSPECT", "severity": "error", "message": "A bounding-box dimension is at or below the zero-thickness tolerance"})
@@ -1055,39 +1079,47 @@ def geometry_validation(part_id, workplane, tolerance=1e-7, trace=None, part=Non
             "edgeCount": len(workplane.edges().vals()),
             "volume": volume,
             "bbox": dimensions,
+            "boundsMin": [float(bbox.xmin), float(bbox.ymin), float(bbox.zmin)],
+            "boundsMax": [float(bbox.xmax), float(bbox.ymax), float(bbox.zmax)],
+            "center": list(shape.Center().toTuple()),
         },
     }
 
 
-def compute_interferences(parts, tolerance=1e-7, intended_contacts=None):
+def compute_interferences(parts, tolerance=1e-7, intended_contacts=None, statistics=None, volume_tolerance=1e-9):
     intended = {tuple(sorted(pair)) for pair in (intended_contacts or [])}
     reports = []
-    for left_index in range(len(parts)):
-        for right_index in range(left_index + 1, len(parts)):
-            left = parts[left_index]
-            right = parts[right_index]
-            pair = tuple(sorted((str(left["id"]), str(right["id"]))))
-            left_shape = left["shape"]
-            right_shape = right["shape"]
-            if not bounding_boxes_overlap(left_shape.val().BoundingBox(), right_shape.val().BoundingBox(), tolerance):
-                continue
+    bounds = {id(part): precise_bounds(part["shape"].val()) for part in parts}
+    candidates = []
+    active = []
+    for right in sorted(parts, key=lambda part: bounds[id(part)].xmin):
+        box = bounds[id(right)]
+        active = [part for part in active if bounds[id(part)].xmax - box.xmin > tolerance]
+        for left in active:
+            if bounding_boxes_overlap(bounds[id(left)], box, tolerance):
+                candidates.append((left, right))
+        active.append(right)
+    if statistics is not None:
+        statistics.update({"algorithm": "sweep-and-prune + exact BRep intersection", "totalPairs": len(parts)*(len(parts)-1)//2,
+                           "candidatePairs": len(candidates), "booleanChecks": len(candidates), "bboxEvaluations": len(parts)})
+    for left, right in candidates:
+        pair = tuple(sorted((str(left["id"]), str(right["id"]))))
+        left_shape = left["shape"]
+        right_shape = right["shape"]
+        try:
             intersection = left_shape.intersect(right_shape)
-            volume = sum(max(float(solid.Volume()), 0.0) for solid in intersection.solids().vals())
-            if volume > tolerance:
-                left_bounds = bounding_box_report(left_shape.val().BoundingBox())
-                right_bounds = bounding_box_report(right_shape.val().BoundingBox())
-                reports.append({
-                    "parts": list(pair),
-                    "volume": volume,
-                    "severity": "error",
-                    "code": "PART_INTERFERENCE",
-                    "intendedContact": pair in intended,
-                    "partBounds": {
-                        str(left["id"]): left_bounds,
-                        str(right["id"]): right_bounds,
-                    },
-                    "overlapBounds": overlap_bounds(left_bounds, right_bounds),
-                })
+            volume = sum(float(solid.Volume(tol=1e-9)) for solid in intersection.solids().vals())
+            if not math.isfinite(volume) or volume < -volume_tolerance:
+                raise ValueError("Interference intersection returned invalid signed volume")
+        except Exception as error:
+            reports.append({"parts": list(pair), "severity": "error", "code": "INTERFERENCE_CHECK_FAILED", "message": str(error), "intendedContact": False})
+            continue
+        if volume > volume_tolerance:
+            left_bounds = bounding_box_report(bounds[id(left)])
+            right_bounds = bounding_box_report(bounds[id(right)])
+            reports.append({"parts": list(pair), "volume": volume, "severity": "error", "code": "PART_INTERFERENCE",
+                            "intendedContact": pair in intended, "partBounds": {str(left["id"]): left_bounds, str(right["id"]): right_bounds},
+                            "overlapBounds": overlap_bounds(left_bounds, right_bounds)})
     return reports
 
 
@@ -1268,11 +1300,13 @@ def main():
         part_id = safe_name(part.get("id", part.get("name", "part")))
         log("Building part {}".format(part_id))
         part_trace = []
+        modeling_start = time.perf_counter()
         built = build_manifest_part(part, trace=part_trace)
+        modeling_ms = (time.perf_counter() - modeling_start) * 1000
         built = apply_repair_actions(built, part.get("id") or part_id, plan.get("repairActions", []), part_trace)
         built, healing = heal_workplane(built)
         feature_traces[part.get("id") or part_id] = part_trace
-        geometry_report = geometry_validation(part.get("id") or part_id, built, trace=part_trace, part=part)
+        geometry_report = geometry_validation(part.get("id") or part_id, built, trace=part_trace, part=part, pre_healing=healing)
         geometry_report["shapeHealing"] = healing
         for stage in geometry_report.get("reviewStages", []):
             if stage.get("stage") == "shape_healing":
@@ -1310,16 +1344,19 @@ def main():
             "pngPath": part_png if os.path.exists(part_png) else None,
             "featureTrace": part_trace,
             "geometryValidation": geometry_report,
+            "modelingMs": modeling_ms,
         })
 
     feature_trace_path = os.path.join(out_dir, "feature-trace.json")
     write_feature_trace(feature_trace_path, feature_traces)
-    interferences = compute_interferences(located_entries, intended_contacts=plan.get("intendedContacts", []))
+    interference_statistics = {}
+    interferences = compute_interferences(located_entries, intended_contacts=plan.get("intendedContacts", []), statistics=interference_statistics)
     geometry_validation_path = os.path.join(out_dir, "geometry-validation.json")
     validation_payload = {
         "format": "ai-cad-geometry-validation-v1",
         "parts": geometry_reports,
         "interferences": interferences,
+        "interferenceStatistics": interference_statistics,
         "blockingErrorCount": sum(report["blockingErrorCount"] for report in geometry_reports) + sum(
             1 for report in interferences if not report.get("intendedContact")
         ),
@@ -1346,7 +1383,8 @@ def main():
         glb_path = None
         png_path = None
 
-    step_roundtrip = step_roundtrip_report(step_path, part_outputs)
+    assembly_facts = shape_facts(cq.Workplane("XY").newObject([compound])) if located_parts else None
+    step_roundtrip = step_roundtrip_report(step_path, part_outputs, assembly_facts)
     validation_payload["stepRoundTrip"] = step_roundtrip
     validation_payload["reviewStages"] = [
         {"stage": "brepcheck", "status": "pass" if all(item.get("valid") for item in geometry_reports) else "fail"},

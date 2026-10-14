@@ -11,6 +11,11 @@ const state = {
   lastSearch: null,
   currentJobId: null,
   currentAssembly: null,
+  usdBrepAvailable: false,
+  usdExportBusy: false,
+  usdExportTarget: null,
+  previewEngine: "cadquery",
+  nativePart: null,
   currentPlan: null,
   currentVisualReview: null,
   visualImprovementBusy: false,
@@ -101,6 +106,20 @@ const els = {
   downloadLink: document.querySelector("#downloadLink"),
   fcstdLink: document.querySelector("#fcstdLink"),
   stepLink: document.querySelector("#stepLink"),
+  usdExportBtn: document.querySelector("#usdExportBtn"),
+  usdLink: document.querySelector("#usdLink"),
+  usdDemoBtn: document.querySelector("#usdDemoBtn"),
+  geometryEngine: document.querySelector("#geometryEngine"),
+  nativeScope: document.querySelector("#nativeScope"),
+  usdBrepLink: document.querySelector("#usdBrepLink"),
+  kernelCodeLink: document.querySelector("#kernelCodeLink"),
+  modelKernel: document.querySelector("#modelKernel"),
+  compareKernelsBtn: document.querySelector("#compareKernelsBtn"),
+  kernelComparison: document.querySelector("#kernelComparison"),
+  comparisonConstraint: document.querySelector("#comparisonConstraint"),
+  unifiedReviewBtn: document.querySelector("#unifiedReviewBtn"),
+  unifiedReviewPanel: document.querySelector("#unifiedReviewPanel"),
+  reviewProfile: document.querySelector("#reviewProfile"),
   assemblyStlLink: document.querySelector("#assemblyStlLink"),
   kinematicPackageLink: document.querySelector("#kinematicPackageLink"),
   constraintsLink: document.querySelector("#constraintsLink"),
@@ -167,13 +186,21 @@ async function init() {
   try {
     const status = await api("/api/status");
     state.requestToken = status.requestToken || "";
+    state.usdBrepAvailable = Boolean(status.usdBrep?.available);
+    els.usdExportBtn.hidden = !state.usdBrepAvailable;
+    els.usdDemoBtn.hidden = !state.usdBrepAvailable;
+    els.compareKernelsBtn.hidden = !state.usdBrepAvailable;
+    state.previewEngine = state.usdBrepAvailable && localStorage.getItem("ai-cad-modeling-engine") !== "cadquery" ? "usd-brep" : "cadquery";
+    els.geometryEngine.value = state.previewEngine;
+    els.geometryEngine.querySelector('[value="usd-brep"]').disabled = !state.usdBrepAvailable;
+    els.nativeScope.hidden = state.previewEngine !== "usd-brep";
     const searchLabel = status.webSearch?.provider ? ` | 搜索: ${status.webSearch.provider}` : "";
     const freecadLabel = status.freecadCmd ? ` | FreeCADCmd: ${status.freecadCmd}` : "";
     const codexModelLabel = status.codexModel ? ` · ${status.codexModel}` : "";
     const llmLabel = status.llm?.provider === "deepseek" && status.llm?.deepseek?.active
       ? ` | DeepSeek: ${status.llm.deepseek.model}${status.llm.deepseek.vision ? " · vision" : ""}${status.llm.strict ? " · strict" : ""}`
       : ` | Codex: ${status.codexBin}${codexModelLabel}`;
-    els.engineStatus.textContent = `CadQuery: ${status.cadqueryPython}${llmLabel}${freecadLabel}${searchLabel}`;
+    els.engineStatus.textContent = `${state.usdBrepAvailable ? "可用内核: NVIDIA USD BRep / SMLib + CadQuery / OpenCascade" : `CadQuery: ${status.cadqueryPython}`}${llmLabel}${freecadLabel}${searchLabel}`;
     renderLatentStatus(status.latentLearning);
     els.code.value = localStorage.getItem("ai-cad-code") || "// CadQuery 特征 JSON 会在对话生成后显示在这里";
     state.autoRenderReady = true;
@@ -241,6 +268,28 @@ function wireEvents() {
   });
   els.renderBtn.addEventListener("click", () => previewCadQuery({ force: true }));
   els.exportBtn.addEventListener("click", () => previewCadQuery({ force: true, download: true }));
+  els.usdExportBtn.addEventListener("click", exportUsdMesh);
+  els.compareKernelsBtn.addEventListener("click", compareKernels);
+  els.unifiedReviewBtn.addEventListener("click", runUnifiedReview);
+  els.geometryEngine.addEventListener("change", () => {
+    state.previewEngine = els.geometryEngine.value;
+    localStorage.setItem("ai-cad-modeling-engine", state.previewEngine);
+    els.nativeScope.hidden = state.previewEngine !== "usd-brep";
+    clearGeneratedPreview("内核已切换，请刷新预览或发送需求。");
+  });
+  els.usdDemoBtn.addEventListener("click", async () => {
+    setBusy(els.usdDemoBtn, true);
+    try {
+      const part = await api("/usd-demo-plate.json");
+      els.code.value = JSON.stringify(part, null, 2);
+      localStorage.setItem("ai-cad-code", els.code.value);
+      await previewCadQuery({ force: true });
+    } catch (error) {
+      setError(error);
+    } finally {
+      setBusy(els.usdDemoBtn, false);
+    }
+  });
   window.addEventListener("resize", () => cadViewer?.resize());
   els.viewAssemblyBtn.addEventListener("click", showAssemblyStl);
   els.viewPartBtn.addEventListener("click", showActivePartStl);
@@ -373,6 +422,7 @@ async function sendChat() {
   const images = state.pendingImages.slice();
   const trainingRequested = state.trainingMode;
   if (!message && !images.length) return;
+  if (state.previewEngine === "usd-brep") return sendNativeChat(message, images);
 
   pushMessage("user", images.length ? `${message || "（识别参考图片建模）"}\n📷 附带 ${images.length} 张参考图` : message);
   els.chatInput.value = "";
@@ -455,6 +505,114 @@ async function sendChat() {
     state.chatAbortController = null;
     els.cancelChatBtn.hidden = true;
   }
+}
+
+async function sendNativeChat(message, images) {
+  pushMessage("user", message || "根据参考图片建模");
+  els.chatInput.value = "";
+  state.pendingImages = [];
+  renderChatImagePreview();
+  setBusy(els.sendChatBtn, true);
+  setBusy(els.geometryEngine, true);
+  clearGeneratedPreview("NVIDIA USD BRep：正在规划并构建实体…");
+  updateProcessTrace("build", "进行中", "AI 特征规划 → NVIDIA USD BRep 原生建模");
+  try {
+    const result = await api("/api/usd/generate", { method: "POST", body: {
+      message: message || "根据参考图片建模", images, conversationId: state.conversationId, part: state.nativePart
+    } });
+    pushMessage("assistant", result.reply);
+    state.nativePart = result.preview.part;
+    els.code.value = JSON.stringify(result.preview.part, null, 2);
+    localStorage.setItem("ai-cad-code", els.code.value);
+    await showPartPreview(result.preview);
+    if (result.preview.status === "done") updateProcessTrace("deliver", "完成", "NVIDIA 原生实体已通过统一几何审查；完整交付另需视觉检查");
+    else updateProcessTrace("validate", "失败", "实体已构建，但统一 BRep 审查存在阻断问题");
+  } catch (error) {
+    setError(error);
+    pushMessage("assistant", error.message);
+    updateProcessTrace("build", "失败", "原生建模失败，未切换到 CadQuery");
+  } finally {
+    setBusy(els.sendChatBtn, false);
+    setBusy(els.geometryEngine, false);
+  }
+}
+
+async function compareKernels() {
+  if (!els.code.value.trim()) return;
+  setBusy(els.compareKernelsBtn, true);
+  els.kernelComparison.hidden = false;
+  els.kernelComparison.textContent = "同一参数计划正在分别通过 NVIDIA USD BRep 和 OpenCascade 构建…";
+  try {
+    const report = await api("/api/kernels/compare", { method: "POST", body: { code: els.code.value, constraintMode: els.comparisonConstraint.value } });
+    const native = report.engines.find(item => item.engine === "usd-brep");
+    const occt = report.engines.find(item => item.engine === "cadquery");
+    const format = value => Number.isFinite(value) ? value.toPrecision(10) : "—";
+    const row = (label, a, c) => `<tr><th>${escapeHtml(label)}</th><td>${escapeHtml(String(a))}</td><td>${escapeHtml(String(c))}</td></tr>`;
+    const cells = item => item.metrics || {};
+    const a = cells(native), c = cells(occt);
+    const dof = report.dof.analysis.parts[report.partId]?.remainingDof;
+    els.kernelComparison.innerHTML = `<h2>双内核实测 · 同一参数计划</h2><table class="kernel-metrics"><thead><tr><th>指标</th><th>NVIDIA / SMLib</th><th>CadQuery / OpenCascade</th></tr></thead><tbody>`
+      + row("构建结果", native.status === "passed" ? "成功" : native.error, occt.status === "passed" ? "成功" : occt.error)
+      + row("体积 mm³", format(a.volumeMm3), format(c.volumeMm3))
+      + row("包围尺寸 mm", (a.bboxMm || []).map(format).join(" × "), (c.bboxMm || []).map(format).join(" × "))
+      + row("面数 / 边数", `${a.faceCount ?? "—"} / ${a.edgeCount ?? "—"}`, `${c.faceCount ?? "—"} / ${c.edgeCount ?? "—"}`)
+      + row("实体检查", a.valid === true ? "闭合实体通过" : "未通过", c.valid === true ? "BREP 检查通过" : "未通过")
+      + row("相对解析体积的绝对误差 mm³", format(native.analyticVolumeErrorMm3), format(occt.analyticVolumeErrorMm3))
+      + row("特征建模耗时 ms", format(a.modelingMs), format(c.modelingMs))
+      + row("端到端耗时 ms", format(native.durationMs), format(occt.durationMs))
+      + row("共享约束层推断的刚体自由度", dof ?? "未能分析", dof ?? "未能分析")
+      + `</tbody></table><p>两个结果的体积差：${escapeHtml(format(report.volumeDifferenceMm3))} mm³。${report.reference ? `解析参考：${escapeHtml(report.reference.formula)} = ${escapeHtml(format(report.reference.value))} mm³。` : "本模型没有独立解析参考，数值差只用于比较一致性。"}</p>`
+      + report.limitations.map(note => `<p>${escapeHtml(note)}</p>`).join("")
+      + `<a href="${escapeHtml(report.reportUrl)}" download>下载对比报告</a><p>内核源码：<a href="https://github.com/NVIDIA-Omniverse/usd-brep/tree/main/source" target="_blank" rel="noopener">NVIDIA USD BRep / SMLib</a> · <a href="https://github.com/Open-Cascade-SAS/OCCT" target="_blank" rel="noopener">OpenCascade</a>。CadQuery 是调用 OpenCascade 的 Python 层。</p>`;
+    for (const item of report.engines) {
+      if (!item.preview) continue;
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = item.engine === "usd-brep" ? "查看 NVIDIA 模型与代码" : "查看 OpenCascade 模型与代码";
+      button.addEventListener("click", () => showPartPreview(item.preview).catch(setError));
+      els.kernelComparison.append(button);
+    }
+  } catch (error) {
+    els.kernelComparison.textContent = error.message;
+  } finally { setBusy(els.compareKernelsBtn, false); }
+}
+
+function renderUnifiedReview(report) {
+  els.unifiedReviewPanel.hidden = false;
+  const statusLabel = { pass: "通过", fail: "未通过", pending: "待补充审查" };
+  const decision = report.review || {};
+  els.unifiedReviewPanel.innerHTML = `<h2>统一审查 · BRep + 视觉：${escapeHtml(statusLabel[report.status || decision.geometryDecision] || "证据不足")}</h2>`
+    + `<p>几何：${escapeHtml(statusLabel[decision.geometryDecision] || "未知")} · 视觉：${escapeHtml(statusLabel[decision.visualDecision] || "待检查")} · 完整交付：${escapeHtml(statusLabel[decision.deliveryDecision] || "待检查")}</p>`
+    + `<p>阻断问题 ${Number(report.blockingErrorCount || 0)} · 警告 ${Number(report.summary?.warnings || 0)}。${decision.cache ? `${decision.cache.hit ? "复用已验证证据" : "生成统一报告"}，内容校验与报告处理 ${Number(decision.cache.durationMs).toFixed(2)} ms。` : ""}</p>`
+    + `<p>证据来自构建时的内核检查；重新审查核对参数计划与文件 SHA-256，内容变化会阻止复用。</p>`
+    + (report.reviewStages || []).map(stage => `<p>${escapeHtml(stage.stage)}：${escapeHtml(stage.status)}</p>`).join("")
+    + (report.independentReferences || []).map(item => `<p>独立解析参考：${escapeHtml(item.formula)}；实测 ${escapeHtml(String(item.measured))}，目标 ${escapeHtml(String(item.target))} mm³。</p>`).join("")
+    + (report.issues || []).map(issue => `<p>${escapeHtml(issue.severity)} · ${escapeHtml(issue.code)}：${escapeHtml(issue.message || "")}</p>`).join("")
+    + (report.visualEvidence ? `<p>视觉证据：${escapeHtml(report.visualEvidence.summary || report.visualEvidence.status)}</p>`
+      + report.visualEvidence.findings.map(item => `<p>视觉 · ${escapeHtml(item.severity || "info")}：${escapeHtml(item.message || item.description || item.title || "待确认问题")}</p>`).join("") : "")
+    + (report.visualAttempt?.status === "unavailable" ? `<p>视觉尚未完成：${escapeHtml(report.visualAttempt.message)}。可重试统一审查。</p>` : "");
+  if (report.reportUrl) {
+    const link = document.createElement("a"); link.href = report.reportUrl; link.download = "unified-review.json";
+    link.textContent = "下载统一审查报告"; els.unifiedReviewPanel.append(link);
+  }
+}
+
+async function runUnifiedReview() {
+  const target = state.usdExportTarget;
+  if (!target?.id) return;
+  setBusy(els.unifiedReviewBtn, true);
+  try {
+    const profile = els.reviewProfile.value;
+    els.renderState.textContent = profile === "delivery" ? "正在联合审查 BRep 并采集视觉证据…" : "正在核对几何证据…";
+    const screenshots = profile === "delivery" ? await captureReviewScreenshots() : [];
+    if (state.usdExportTarget?.id !== target.id) throw new Error("模型已切换，请重新审查当前模型");
+    const report = await api("/api/review", { method: "POST", body: { assemblyId: target.id,
+      revisionId: target.currentRevision || target.reviewRevisionId || null, profile, runVisual: profile === "delivery",
+      screenshots, conversationId: state.conversationId, userRequest: state.messages.filter(item => item.role === "user").at(-1)?.content || "" } });
+    if (state.usdExportTarget?.id === target.id) renderUnifiedReview(report);
+    els.renderState.textContent = "联合审查完成，结果见统一报告";
+  } catch (error) { setError(error); }
+  finally { els.unifiedReviewBtn.disabled = !state.usdExportTarget?.id; }
 }
 
 function cancelChat() {
@@ -972,6 +1130,14 @@ function updateAssembly(assembly) {
 
   setDownload(els.fcstdLink, assembly.fcstdUrl);
   setDownload(els.stepLink, assembly.stepUrl);
+  state.usdExportTarget = assembly;
+  els.unifiedReviewBtn.disabled = !assembly.id;
+  if (assembly.validation?.review) renderUnifiedReview(assembly.validation);
+  setDownload(els.usdBrepLink, null);
+  setDownload(els.kernelCodeLink, null);
+  els.modelKernel.textContent = `本次模型：${assembly.engine || "cadquery"}`;
+  setDownload(els.usdLink, null);
+  els.usdExportBtn.disabled = state.usdExportBusy || !state.usdBrepAvailable || assembly.status !== "done" || !assembly.stlUrl;
   setDownload(els.assemblyStlLink, assembly.stlUrl);
   setDownload(els.kinematicPackageLink, assembly.kinematicPackageUrl);
   setDownload(els.constraintsLink, assembly.constraintManifestUrl);
@@ -1059,6 +1225,29 @@ function showActivePartStl() {
     loadStl(activeBuilt.stlUrl, { label: activeBuilt.name || activeBuilt.id || "零件" });
   } else if (activeBuilt?.pngUrl) {
     showPreviewImage(activeBuilt.pngUrl);
+  }
+}
+
+async function exportUsdMesh() {
+  const assembly = state.usdExportTarget;
+  if (!assembly || state.usdExportBusy) return;
+  state.usdExportBusy = true;
+  els.usdExportBtn.disabled = true;
+  els.usdExportBtn.textContent = "USD 导出中…";
+  try {
+    const result = await api("/api/usd/export", { method: "POST", body: {
+      assemblyId: assembly.id, revisionId: assembly.currentRevision || null
+    } });
+    if (state.usdExportTarget?.id !== assembly.id || (state.usdExportTarget?.currentRevision || null) !== (assembly.currentRevision || null)) return;
+    setDownload(els.usdLink, result.usdUrl);
+    els.log.classList.remove("error");
+    els.log.textContent = `USD 网格已导出：${result.triangles} 个三角面，单位毫米。精确实体请使用 STEP。`;
+  } catch (error) {
+    setError(error);
+  } finally {
+    state.usdExportBusy = false;
+    els.usdExportBtn.textContent = "导出 USD 网格";
+    els.usdExportBtn.disabled = !state.usdBrepAvailable || state.usdExportTarget?.status !== "done" || !state.usdExportTarget?.stlUrl;
   }
 }
 
@@ -1150,16 +1339,22 @@ async function runVisualReview({ rethrow = false, autoImprove = false } = {}) {
   els.visualReviewFindings.innerHTML = "";
   try {
     const screenshots = await captureReviewScreenshots();
-    const review = await api("/api/visual-review", {
+    const combined = await api("/api/review", {
       method: "POST",
       body: {
         assemblyId: assembly.id,
+        revisionId: assembly.currentRevision || assembly.reviewRevisionId || null,
+        profile: "delivery",
+        runVisual: true,
         conversationId: state.conversationId,
         plan: state.currentPlan,
         assembly,
         screenshots
       }
     });
+    renderUnifiedReview(combined);
+    const review = combined.visualReview;
+    if (!review) throw new Error(combined.visualAttempt?.message || "视觉审查尚未完成，请重试统一审查");
     state.currentVisualReview = review;
     review.geometryAcceptance = geometryAcceptanceState(state.currentAssembly);
     refreshClientAcceptance(review);
@@ -1840,21 +2035,29 @@ async function previewCadQuery({ force = false, download = false } = {}) {
   if (!els.code.value.trim()) return;
   const sequence = ++state.previewSeq;
   setBusy(els.renderBtn, true);
-  els.renderState.textContent = "正在生成 CadQuery 预览...";
+  els.renderState.textContent = state.previewEngine === "usd-brep" ? "NVIDIA USD BRep 正在构建实体…" : "正在生成 CadQuery 预览...";
   try {
     const preview = await api("/api/preview", {
       method: "POST",
-      body: { code: els.code.value }
+      body: { code: els.code.value, engine: state.previewEngine }
     });
     if (!force && sequence !== state.previewSeq) return;
+    await showPartPreview(preview, { download });
+  } catch (error) {
+    setError(error);
+  } finally { setBusy(els.renderBtn, false); }
+}
+
+async function showPartPreview(preview, { download = false } = {}) {
     state.currentJobId = preview.id;
     els.jobId.textContent = preview.id;
     els.renderState.textContent = "预览完成";
     els.log.classList.remove("error");
     els.log.textContent = JSON.stringify({
       id: preview.id,
-      engine: "cadquery",
-      output: preview.fcstdUrl ? "FreeCAD FCStd primary, STEP compatibility, STL preview" : "STEP compatibility, STL preview",
+      engine: preview.engine || "cadquery",
+      nativeReport: preview.nativeReport || null,
+      output: preview.usdBrepUrl ? "Native USD BRep precise solid + tessellated preview" : preview.fcstdUrl ? "FreeCAD FCStd primary, STEP compatibility, STL preview" : "STEP compatibility, STL preview",
       part: preview.part?.name || preview.part?.id
     }, null, 2);
     if (preview.stlUrl) {
@@ -1868,15 +2071,19 @@ async function previewCadQuery({ force = false, download = false } = {}) {
     }
     setDownload(els.fcstdLink, preview.fcstdUrl);
     setDownload(els.stepLink, preview.stepUrl);
+    setDownload(els.usdBrepLink, preview.usdBrepUrl);
+    setDownload(els.kernelCodeLink, preview.codeUrl);
+    els.modelKernel.textContent = preview.usdBrepUrl ? "本次模型：NVIDIA USD BRep / SMLib" : "本次模型：CadQuery / OpenCascade";
+    if (preview.usdBrepUrl) state.nativePart = preview.part;
+    state.usdExportTarget = preview;
+    els.unifiedReviewBtn.disabled = !preview.id;
+    if (preview.unifiedReview) renderUnifiedReview(preview.unifiedReview);
+    setDownload(els.usdLink, preview.usdMeshUrl || null);
+    els.usdExportBtn.disabled = state.usdExportBusy || !state.usdBrepAvailable || !preview.stlUrl;
     setDownload(els.assemblyStlLink, preview.assemblyStlUrl);
     setDownload(els.kinematicPackageLink, preview.kinematicPackageUrl);
     setDownload(els.constraintsLink, preview.constraintManifestUrl);
     setDownload(els.manifestLink, preview.manifestUrl);
-  } catch (error) {
-    setError(error);
-  } finally {
-    setBusy(els.renderBtn, false);
-  }
 }
 
 function showPreviewImage(url) {
@@ -1894,6 +2101,14 @@ function resetViewerStage() {
 }
 
 function clearGeneratedPreview(message = "等待 3D 预览") {
+  state.usdExportTarget = null;
+  els.unifiedReviewBtn.disabled = true;
+  els.unifiedReviewPanel.hidden = true;
+  setDownload(els.usdBrepLink, null);
+  setDownload(els.kernelCodeLink, null);
+  els.modelKernel.textContent = "";
+  els.usdExportBtn.disabled = true;
+  setDownload(els.usdLink, null);
   cadViewer?.cancelPendingLoad();
   cadViewer?.clearModel();
   cadViewer?.render();

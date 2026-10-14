@@ -3,17 +3,18 @@ import { mkdir, readFile } from "node:fs/promises";
 import path from "node:path";
 
 import { analyzeAssemblyConstraints } from "./assembly-constraints.js";
-import { assessManufacturability, canPromoteRevision, mergeValidationReports, proposeDeterministicRepairs, validateBuildEvidence } from "./cad-validation.js";
+import { composeAssemblyValidationReport } from "./assembly-validation-report.js";
+import { canPromoteRevision, proposeDeterministicRepairs } from "./cad-validation.js";
 import { applyEditPatch } from "./parametric-edit.js";
 import { checksumParametricPart } from "./parametric-plan.js";
 import { createCandidateRevision, markRevisionFailed, promoteRevision, writeRevisionState } from "./revision-store.js";
 
 const assemblyWriteLocks = new Map();
-export const CADQUERY_BUILDER_VERSION = "cadquery-parametric-v9";
+export const CADQUERY_BUILDER_VERSION = "cadquery-parametric-v10-unified-review";
 export const REVISION_DELIVERY_KEYS = [
   "engine", "fcstdPath", "stepPath", "stlPath", "glbPath", "glbWarning", "featureTracePath", "geometryValidationPath", "manifestPath",
   "kinematics", "kinematicsPath", "constraintManifestPath", "kinematicPackagePath", "kinematicArchivePath", "freeCadBridgeLog", "freeCadBridgeReport",
-  "completedAt", "status"
+  "completedAt", "status", "reviewBindings", "reviewPlanChecksum", "usdBrepPath"
 ];
 
 export async function editAssemblyRevision({ revisionRoot, job, patch, executeBuild, finalizeBuild }) {
@@ -82,19 +83,16 @@ async function editAssemblyRevisionUnlocked({ revisionRoot, job, patch, executeB
       buildError = error;
       buildSummary = { parts: [], geometryValidation: { parts: [], interferences: [] } };
     }
-    const geometryValidation = buildSummary.geometryValidation || { parts: [], interferences: [] };
     const constraintReport = analyzeAssemblyConstraints(workingPlan);
-    const manufacturingIssues = assessManufacturability(
-      workingPlan,
-      Object.fromEntries((geometryValidation.parts || []).map((report) => [report.partId, report]))
-    );
-    const validationReport = mergeValidationReports({
-      planIssues: [...validateBuildEvidence(workingPlan, buildSummary), ...(buildError ? [buildFailureIssue(buildError, workingPlan)] : [])],
-      geometryReports: geometryValidation.parts || [],
-      interferences: geometryValidation.interferences || [],
-      constraintReport,
-      manufacturingIssues
-    });
+    const validationReport = composeAssemblyValidationReport({ plan: workingPlan, buildSummary, constraintReport, assemblyId: job.id, revisionId: candidate.id });
+    if (buildError) {
+      validationReport.issues.push(buildFailureIssue(buildError, workingPlan));
+      validationReport.summary.errors += 1;
+      validationReport.blockingErrorCount += 1;
+      validationReport.valid = false;
+      validationReport.review.geometryDecision = "fail";
+      validationReport.review.deliveryDecision = "fail";
+    }
     validationReport.assemblyId = job.id;
     validationReport.revisionId = candidate.id;
     if (!canPromoteRevision(validationReport)) {
@@ -208,7 +206,7 @@ export function validationPayload(job) {
     format: "ai-cad-validation-response-v1",
     assemblyId: job.id,
     revisionId: job.currentRevision || null,
-    ...(structuredClone(job.validationReport || { blockingErrorCount: 0, summary: { errors: 0, warnings: 0, info: 0 }, issues: [] })),
+    ...(structuredClone(job.validationReport || { valid: false, blockingErrorCount: 1, summary: { errors: 1, warnings: 0, info: 0 }, issues: [{ code: "MISSING_REVIEW_EVIDENCE", severity: "error" }] })),
     repairAudit: structuredClone(job.repairAudit || []),
     constraints: structuredClone(job.constraintReport || null)
   };
@@ -219,6 +217,7 @@ export function restoreJobFromRevisionState(job, revisionId, state) {
   if (!job || !state?.plan || !state.validationReport || !state.constraintReport) throw new Error("Revision state is incomplete");
   job.plan = structuredClone(state.plan);
   job.currentRevision = revisionId;
+  delete job.latestUnifiedReview;
   job.validationReport = structuredClone(state.validationReport);
   job.constraintReport = structuredClone(state.constraintReport);
   if (job.constraintReport?.format === "ai-cad-constraint-analysis-v1" && Array.isArray(job.plan.joints) && job.plan.joints.length > 0) {

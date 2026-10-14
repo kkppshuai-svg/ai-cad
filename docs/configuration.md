@@ -36,6 +36,7 @@ AICAD_LLM_PROVIDER=codex
 | --- | --- | --- |
 | `CADQUERY_PYTHON` | `.venv-cadquery/bin/python` | CadQuery/OCP Python |
 | `FREECAD_CMD` | `freecadcmd` | FreeCAD 命令行程序 |
+| `USD_BREP_PYTHON` | 未配置 | 可选的 Python 3.12/USD BRep 环境，详见 [USD 导出](usd-brep.md) |
 | `AICAD_CAD_EXPLORER_SKILL_DIR` | 自动解析 | CAD Explorer skill 位置 |
 
 `AICAD_CADQUERY_PYTHON` 只用于现有 FreeCAD 集成测试兼容；服务器运行时的权威变量是 `CADQUERY_PYTHON`。

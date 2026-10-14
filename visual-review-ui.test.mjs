@@ -8,7 +8,8 @@ const server = readFileSync(new URL("./server.js", import.meta.url), "utf8");
 
 test("preview panel exposes a manual visual review button and report container", () => {
   assert.match(html, /id="visualReviewBtn"/);
-  assert.match(html, /审查并自动修复/);
+  assert.match(html, /视觉检查与修复/);
+  assert.match(html, /id="unifiedReviewBtn"/);
   assert.match(html, /id="visualReviewPanel"/);
   assert.match(html, /id="visualReviewStatus"/);
   assert.match(html, /id="visualAcceptanceStatus"/);
@@ -55,7 +56,8 @@ test("app wires manual visual review to screenshot capture and backend endpoint"
   assert.match(appJs, /setReviewTransparency\(enclosurePartIds, 0\.08\)/);
   assert.match(appJs, /setReviewVisibility\?\.\(enclosurePartIds, false\)/);
   assert.match(appJs, /restoreDisplayState/);
-  assert.match(appJs, /api\("\/api\/visual-review"/);
+  assert.match(appJs, /api\("\/api\/review"/);
+  assert.match(appJs, /runVisual: true/);
 });
 
 test("completed generation enters an automatic review/improvement loop", () => {
@@ -77,7 +79,7 @@ test("visual review button is disabled until an assembly and mesh are ready", ()
 
 test("validation-failed previews remain eligible for visual evidence but not training promotion", () => {
   assert.match(server, /\["done", "validation_failed"\]\.includes\(job\.status\)/);
-  assert.match(server, /job\.currentRevision \|\| job\.pendingRevision \|\| `validation-failed:/);
+  assert.match(server, /const reviewedRevisionId = reviewRevisionId\(job\)/);
   assert.match(appJs, /state\.currentAssembly\?\.status === "validation_failed"/);
   assert.match(appJs, /几何验证未通过，未进入训练样本/);
   assert.match(server, /acceptance: assemblyAcceptanceGate\(job\)/);

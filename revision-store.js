@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { access, mkdir, readFile, readdir, rename, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { canPromoteRevision } from "./cad-validation.js";
 
 
 const ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,119}$/;
@@ -42,7 +43,7 @@ export async function promoteRevision(root, assemblyId, revisionId, validationRe
 
 async function promoteRevisionUnlocked(root, assemblyId, revisionId, validationReport = {}) {
   validateRevisionId(revisionId);
-  if (Number(validationReport.blockingErrorCount || 0) > 0) {
+  if (!canPromoteRevision(validationReport)) {
     throw new Error(`Revision ${revisionId} has blocking validation errors`);
   }
   const assemblyRoot = assemblyPath(root, assemblyId);

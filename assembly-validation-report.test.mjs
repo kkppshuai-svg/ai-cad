@@ -24,7 +24,7 @@ function cleanBuildSummary({ parts = [cleanPart()], reviewStages = [] } = {}) {
       parts,
       interferences: [],
       reviewStages,
-      stepRoundTrip: { issues: [] }
+      stepRoundTrip: { valid: true, issues: [] }
     }
   };
 }
@@ -98,7 +98,7 @@ test("an FBS acceptance check with no matching measurement blocks promotion", ()
 });
 
 test("an FBS check backed by a real measurement passes", () => {
-  const parts = [{ ...cleanPart(), measurements: [{ id: "m-thickness", value: 6 }] }];
+  const parts = [{ ...cleanPart(), measurements: [{ id: "m-thickness", status: "pass", measured: 6, target: 6, tolerance: 0.01 }] }];
   const fbsPlan = {
     ...plan,
     concept: { acceptanceChecks: [{ id: "ac-1", statement: "板厚 6mm", measurementId: "m-thickness" }] }

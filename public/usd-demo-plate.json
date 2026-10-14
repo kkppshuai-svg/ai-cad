@@ -1,0 +1,6 @@
+{
+  "id": "usd_demo_plate",
+  "name": "40×30×6 mm 带孔安装板",
+  "primitives": [{ "type": "box", "size": [40, 30, 6], "center": true }],
+  "features": [{ "type": "hole", "diameter": 8, "depth": 20, "axis": "z", "center": [0, 0, 0] }]
+}

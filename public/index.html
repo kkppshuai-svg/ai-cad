@@ -22,7 +22,7 @@
           <div>
             <p class="eyebrow">AICAD / PARAMETRIC MODELING</p>
             <h1>AI CAD 工程工作台</h1>
-            <p class="lead">以参数化特征计划和 VAE/latent 学习为核心，优先提高零件建模的准确性、稳定性与可修改性，再输出 STEP、FCStd 和预览模型。</p>
+            <p class="lead">以参数化特征计划和 VAE/latent 学习为核心，提高零件建模的准确性、稳定性与可修改性，使用真实双内核与统一 BRep 审查。</p>
           </div>
         </div>
         <div class="status-card status-indicator">
@@ -102,7 +102,7 @@
             <ol>
               <li>从文字或参考图提取尺寸与功能特征。</li>
               <li>生成稳定的参数化特征计划。</li>
-              <li>CadQuery 构建 BREP，并检查几何与制造风险。</li>
+              <li>所选几何内核构建 BREP，并按对应链路校验。</li>
               <li>用评分与 VAE/latent 学习强化成功结构和失败模式。</li>
             </ol>
           </div>
@@ -112,16 +112,26 @@
           <div class="panel-head">
             <div>
               <span class="workspace-kicker">02 / FEATURES</span>
-              <label for="code">当前零件 CadQuery 特征 JSON</label>
+              <label for="code">当前零件参数化特征 JSON</label>
               <span id="activePartName">未选择零件</span>
             </div>
             <span id="renderState">等待输入</span>
           </div>
-          <textarea id="code" spellcheck="false"></textarea>
+          <label for="geometryEngine">建模内核</label>
+          <select id="geometryEngine">
+            <option value="usd-brep">主通道 · NVIDIA USD BRep / SMLib</option>
+            <option value="cadquery">并行验证 · CadQuery / OpenCascade</option>
+          </select>
+          <small id="nativeScope" hidden>USD BRep 为主通道，CadQuery 保留并行验证。当前处于并线待验阶段；原生已接入基础实体、合并、打孔、方槽。</small>
+          <label for="comparisonConstraint">对比用刚体约束</label>
+          <select id="comparisonConstraint"><option value="free">未约束</option><option value="fixed">固定到世界</option></select>
           <div class="actions inline-actions">
             <button id="renderBtn">刷新 3D 预览</button>
             <button id="exportBtn">导出当前预览</button>
+            <button id="usdDemoBtn" type="button" hidden>加载带孔板示例</button>
+            <button id="compareKernelsBtn" type="button" hidden>双内核实测对比</button>
           </div>
+          <textarea id="code" spellcheck="false"></textarea>
         </section>
 
         <section class="panel preview-panel">
@@ -158,12 +168,21 @@
           <div class="assembly-downloads">
             <a id="fcstdLink" href="#" download hidden>下载 FreeCAD 模型</a>
             <a id="stepLink" href="#" download hidden>下载 STEP</a>
+            <a id="usdBrepLink" href="#" download hidden>下载 USD 精确实体</a>
+            <a id="kernelCodeLink" href="#" target="_blank" rel="noopener" hidden>查看构建代码</a>
+            <span id="modelKernel"></span>
+            <button id="unifiedReviewBtn" type="button" disabled>统一审查</button>
+            <select id="reviewProfile" aria-label="审查范围"><option value="delivery">联合审查：BRep + 视觉</option><option value="geometry">仅核对几何证据</option></select>
+            <button id="usdExportBtn" type="button" hidden disabled>导出 USD 网格</button>
+            <a id="usdLink" href="#" download hidden>下载 USD 网格</a>
             <a id="assemblyStlLink" href="#" download hidden>下载 STL 预览</a>
             <a id="kinematicPackageLink" href="#" download hidden>下载单体与关系包</a>
             <a id="constraintsLink" href="#" download hidden>下载约束清单</a>
             <a id="manifestLink" href="#" download hidden>下载模型清单</a>
-            <button id="visualReviewBtn" type="button" disabled>审查并自动修复</button>
+            <button id="visualReviewBtn" type="button" disabled hidden>视觉检查与修复</button>
           </div>
+          <section id="kernelComparison" class="visual-review-panel" hidden></section>
+          <section id="unifiedReviewPanel" class="visual-review-panel" hidden></section>
           <section id="visualReviewPanel" class="visual-review-panel" hidden>
             <div class="visual-review-head">
               <h2>视觉审查</h2>

@@ -10,12 +10,14 @@ AI-CAD 是面向工程研发的本地参数化 CAD 工作台。它将文字或�
 - FBS（需求→功能→行为→结构）与 CAD 规划统一生成，避免重复语义；
 - CadQuery 参数化特征树及 STEP、STL、GLB、FCStd 工程产物；
 - OpenCascade BREP 检查、Shape Healing、几何事实提取和 STEP 回归验证；
+- [统一 BRep 审查](docs/unified-brep-review.md)：双内核证据、精确范围/体积回读、内容校验缓存与视觉交付门禁；
 - 尺寸偏差、零件干涉、约束冲突及基础制造风险检查；
 - 确定性局部修复与 AI 最小范围修复，修复后自动重建并复验；
 - 修订历史、失败候选保留、版本回退和审查证据归档；
 - Codex 或 DeepSeek 规划入口，以及可控的回退策略；
 - BREP latent/VAE 样本积累、检索和训练管线；
 - step.parts 标准件搜索、下载、校验和缓存。
+- 可选的 NVIDIA USD BRep 原生实体建模、双内核实测对比和 USD 导出，详见 [接入说明](docs/usd-brep.md)。
 
 ## 系统主链
 

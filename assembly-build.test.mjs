@@ -44,7 +44,7 @@ function cleanBuildSummary(plan, outDir) {
       })),
       interferences: [],
       reviewStages: [],
-      stepRoundTrip: { issues: [] }
+      stepRoundTrip: { valid: true, issues: [] }
     }
   };
 }

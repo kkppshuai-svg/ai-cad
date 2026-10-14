@@ -624,3 +624,11 @@ button.ghost { background: rgba(255,255,255,.045); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
 }
+
+.kernel-metrics { width: 100%; border-collapse: collapse; font-size: 12px; }
+.kernel-metrics th, .kernel-metrics td { padding: 8px; border-bottom: 1px solid rgba(255,255,255,.12); text-align: left; overflow-wrap: anywhere; }
+#kernelComparison p { font-size: 12px; line-height: 1.6; }
+#kernelComparison button { margin: 8px 8px 0 0; }
+#modelKernel, #nativeScope { font-size: 11px; color: #64d2ff; }
+.editor-panel > label { margin-top: 8px; }
+.editor-panel > #code { margin-top: 10px; }

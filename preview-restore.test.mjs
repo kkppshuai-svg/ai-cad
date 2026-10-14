@@ -22,7 +22,7 @@ test("server exposes disk-backed latest assembly recovery", async () => {
 
 test("parametric revision finalization persists core preview artifact paths", async () => {
   const source = await readFile(new URL("./server.js", import.meta.url), "utf8");
-  const finalizeBlock = source.match(/async function finalizeParametricRevisionBuild[\s\S]*?\n}\n\nfunction revisionDeliveryState/)?.[0] || "";
+  const finalizeBlock = source.match(/async function finalizeParametricRevisionBuild[\s\S]*?\r?\n}\r?\n\r?\nfunction revisionDeliveryState/)?.[0] || "";
 
   assert.match(finalizeBlock, /applyBuildSummaryToJob\(staging, buildSummary\)/);
   assert.match(finalizeBlock, /return revisionDeliveryState\(staging\)/);

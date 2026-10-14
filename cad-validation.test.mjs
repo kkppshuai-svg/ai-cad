@@ -35,7 +35,7 @@ test("FBS acceptance checks must map to measured BREP dimensions", () => {
     { id: "ac-1", statement: "孔径满足要求", measurementId: "plate.bore" },
     { id: "ac-2", statement: "总长满足要求", measurementId: "plate.length" }
   ] } };
-  const issues = validateFbsAcceptanceCoverage(plan, { measurements: [{ id: "plate.bore", status: "pass" }] });
+  const issues = validateFbsAcceptanceCoverage(plan, { measurements: [{ id: "plate.bore", status: "pass", measured: 4, target: 4, tolerance: 0.01 }] });
   assert.deepEqual(issues.map((issue) => issue.measurementId), ["plate.length"]);
 });
 

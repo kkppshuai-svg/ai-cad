@@ -8,6 +8,12 @@ import path from "node:path";
 import { createCandidateRevision, getCurrentRevision, promoteRevision } from "./revision-store.js";
 import { CADQUERY_BUILDER_VERSION, checksumPartBuildPolicy, editAssemblyRevision, featureTreePayload, isEditPatchResponse, parseParametricAssemblyRoute, restoreJobFromRevisionState, validationPayload } from "./parametric-api.js";
 import { checksumParametricPart, normalizeParametricPlan } from "./parametric-plan.js";
+import { analyticVolume } from "./kernel-comparison.js";
+
+function reviewGeometry(part) {
+  const size = part.featureTree?.find(node => node.type === "base_box")?.params.size || [10, 10, 10];
+  return { partId: part.id, valid: true, facts: { solidCount: 1, volume: analyticVolume(part)?.value || 1000, bbox: size } };
+}
 
 
 function plan() {
@@ -63,7 +69,7 @@ test("successful edit reuses unchanged part geometry and promotes candidate", as
       return {
         stepPath: "/new/assembly.step",
         parts: input.plan.parts.map((part) => ({ id: part.id, localStepPath: `/new/${part.id}.step` })),
-        geometryValidation: { parts: input.plan.parts.map((part) => ({ partId: part.id, blockingErrorCount: 0, issues: [] })), interferences: [] }
+        geometryValidation: { stepRoundTrip: { valid: true, issues: [] }, parts: input.plan.parts.map((part) => ({ ...reviewGeometry(part), blockingErrorCount: 0, issues: [] })), interferences: [] }
       };
     }
   });
@@ -87,7 +93,7 @@ test("failed candidate preserves current revision and plan", async () => {
     executeBuild: async (input) => ({
       stepPath: "/new/assembly.step",
       parts: [],
-      geometryValidation: { parts: [{ partId: "left", blockingErrorCount: 1, issues: [{ code: "INVALID_BREP", severity: "error" }] }], interferences: [] }
+      geometryValidation: { stepRoundTrip: { valid: true, issues: [] }, parts: [{ partId: "left", blockingErrorCount: 1, issues: [{ code: "INVALID_BREP", severity: "error" }] }], interferences: [] }
     })
   });
 
@@ -132,7 +138,7 @@ test("does not reuse a cached STEP whose file checksum changed", async () => {
     patch: { baseRevision: "rev-0001", operations: [{ op: "set_param", partId: "left", featureId: "left.base.01", path: "params.size.2", value: 6 }] },
     executeBuild: async (input) => {
       buildPlan = input.plan;
-      return { stepPath: "/new/assembly.step", parts: input.plan.parts.map((part) => ({ id: part.id, localStepPath: `/new/${part.id}.step` })), geometryValidation: { parts: input.plan.parts.map((part) => ({ partId: part.id, blockingErrorCount: 0, issues: [] })), interferences: [] } };
+      return { stepPath: "/new/assembly.step", parts: input.plan.parts.map((part) => ({ id: part.id, localStepPath: `/new/${part.id}.step` })), geometryValidation: { stepRoundTrip: { valid: true, issues: [] }, parts: input.plan.parts.map((part) => ({ ...reviewGeometry(part), blockingErrorCount: 0, issues: [] })), interferences: [] } };
     }
   });
   assert.equal(buildPlan.parts[1].reuseStepPath, undefined);
@@ -148,7 +154,7 @@ test("constraint-only edit reuses every matching local STEP", async () => {
     patch: { baseRevision: "rev-0001", operations: [{ op: "set_constraint", constraint: { id: "align", type: "coincident", from: { partId: "left" }, to: { partId: "right" } } }] },
     executeBuild: async (input) => {
       buildPlan = input.plan;
-      return { stepPath: "/new/assembly.step", parts: input.plan.parts.map((part) => ({ id: part.id, localStepPath: `/new/${part.id}.step` })), geometryValidation: { parts: input.plan.parts.map((part) => ({ partId: part.id, blockingErrorCount: 0, issues: [] })), interferences: [] } };
+      return { stepPath: "/new/assembly.step", parts: input.plan.parts.map((part) => ({ id: part.id, localStepPath: `/new/${part.id}.step` })), geometryValidation: { stepRoundTrip: { valid: true, issues: [] }, parts: input.plan.parts.map((part) => ({ ...reviewGeometry(part), blockingErrorCount: 0, issues: [] })), interferences: [] } };
     }
   });
   assert.ok(buildPlan.parts.every((part) => part.reuseStepPath));
@@ -167,7 +173,7 @@ test("derivative finalization runs before candidate promotion", async () => {
     executeBuild: async (input) => ({
       stepPath: "/new/assembly.step",
       parts: input.plan.parts.map((part) => ({ id: part.id, localStepPath: `/new/${part.id}.step` })),
-      geometryValidation: { parts: input.plan.parts.map((part) => ({ partId: part.id, blockingErrorCount: 0, issues: [] })), interferences: [] }
+      geometryValidation: { stepRoundTrip: { valid: true, issues: [] }, parts: input.plan.parts.map((part) => ({ ...reviewGeometry(part), blockingErrorCount: 0, issues: [] })), interferences: [] }
     }),
     finalizeBuild: async () => {
       assert.equal((await getCurrentRevision(root, job.id)).id, "rev-0001");
@@ -218,7 +224,7 @@ test("serializes edits and rejects a stale concurrent base revision", async () =
   const build = async (input) => ({
     stepPath: "/new/assembly.step",
     parts: input.plan.parts.map((part) => ({ id: part.id, localStepPath: `/new/${part.id}.step` })),
-    geometryValidation: { parts: input.plan.parts.map((part) => ({ partId: part.id, blockingErrorCount: 0, issues: [] })), interferences: [] }
+    geometryValidation: { stepRoundTrip: { valid: true, issues: [] }, parts: input.plan.parts.map((part) => ({ ...reviewGeometry(part), blockingErrorCount: 0, issues: [] })), interferences: [] }
   });
   const first = editAssemblyRevision({
     revisionRoot: root,
@@ -261,7 +267,7 @@ test("deterministic repair rebuilds a failed finish and records audit", async ()
       return {
         stepPath: `/tmp/assembly-${attempt}.step`,
         parts: [{ id: "plate", localStepPath: `/tmp/plate-${attempt}.step` }],
-        geometryValidation: { parts: [{ partId: "plate", blockingErrorCount: radius === 4 ? 1 : 0, issues: radius === 4 ? [{ code: "FINISH_FEATURE_FAILED", severity: "error", featureId: "plate.fillet.01" }] : [] }], interferences: [] }
+        geometryValidation: { stepRoundTrip: { valid: true, issues: [] }, parts: [{ ...reviewGeometry(buildPlan.parts[0]), blockingErrorCount: radius === 4 ? 1 : 0, issues: radius === 4 ? [{ code: "FINISH_FEATURE_FAILED", severity: "error", featureId: "plate.fillet.01" }] : [] }], interferences: [] }
       };
     }
   });
@@ -285,7 +291,7 @@ test("clean-and-retry repair is persisted in the authoritative revision plan", a
       return {
         stepPath: `/tmp/clean-assembly-${attempt}.step`,
         parts: buildPlan.parts.map((part) => ({ id: part.id, localStepPath: `/tmp/clean-${part.id}-${attempt}.step` })),
-        geometryValidation: { parts: buildPlan.parts.map((part) => ({ partId: part.id, blockingErrorCount: part.id === "left" && !repaired ? 1 : 0, issues: part.id === "left" && !repaired ? [{ code: "INVALID_BREP", severity: "error" }] : [] })), interferences: [] }
+        geometryValidation: { stepRoundTrip: { valid: true, issues: [] }, parts: buildPlan.parts.map((part) => ({ ...reviewGeometry(part), blockingErrorCount: part.id === "left" && !repaired ? 1 : 0, issues: part.id === "left" && !repaired ? [{ code: "INVALID_BREP", severity: "error" }] : [] })), interferences: [] }
       };
     }
   });
@@ -306,7 +312,7 @@ test("unsafe validation failures are returned as an AI repair proposal", async (
     executeBuild: async (input) => ({
       stepPath: "/new/assembly.step",
       parts: input.plan.parts.map((part) => ({ id: part.id, localStepPath: `/new/${part.id}.step` })),
-      geometryValidation: { parts: input.plan.parts.map((part) => ({ partId: part.id, blockingErrorCount: 0, issues: [] })), interferences: [{ code: "PART_INTERFERENCE", severity: "error", parts: ["left", "right"], volume: 5 }] }
+      geometryValidation: { stepRoundTrip: { valid: true, issues: [] }, parts: input.plan.parts.map((part) => ({ ...reviewGeometry(part), blockingErrorCount: 0, issues: [] })), interferences: [{ code: "PART_INTERFERENCE", severity: "error", parts: ["left", "right"], volume: 5 }] }
     })
   });
   assert.equal(result.status, "failed");
