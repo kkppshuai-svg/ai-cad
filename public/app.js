@@ -592,6 +592,8 @@ async function compareKernels() {
 }
 
 function renderUnifiedReview(report) {
+  state.currentUnifiedReview = report;
+  state.nativeEditProposal = null;
   els.unifiedReviewPanel.hidden = false;
   const statusLabel = { pass: "通过", fail: "未通过", pending: "待补充审查" };
   const decision = report.review || {};
@@ -600,6 +602,8 @@ function renderUnifiedReview(report) {
     + `<p>阻断问题 ${Number(report.blockingErrorCount || 0)} · 警告 ${Number(report.summary?.warnings || 0)}。${decision.cache ? `${decision.cache.hit ? "复用已验证证据" : "生成统一报告"}，内容校验与报告处理 ${Number(decision.cache.durationMs).toFixed(2)} ms。` : ""}</p>`
     + `<p>证据来自构建时的内核检查；重新审查核对参数计划与文件 SHA-256，内容变化会阻止复用。</p>`
     + (report.reviewStages || []).map(stage => `<p>${escapeHtml(stage.stage)}：${escapeHtml(stage.status)}</p>`).join("")
+    + (report.motionReview ? `<p>运动干涉：${escapeHtml(statusLabel[report.motionReview.status] || "待验证")} · ${Number(report.motionReview.sampleCount || 0)} 帧 · 最小采样间隙 ${Number.isFinite(report.motionReview.minimumSampledClearanceMm) ? report.motionReview.minimumSampledClearanceMm.toFixed(4)+" mm" : "未验证"} · 检查耗时 ${(Number(report.motionReview.durationMs || 0)/1000).toFixed(2)} s</p>`
+      + `<p>${escapeHtml(report.motionReview.message || report.motionReview.coverage || "")}</p>` : "")
     + (report.independentReferences || []).map(item => `<p>独立解析参考：${escapeHtml(item.formula)}；实测 ${escapeHtml(String(item.measured))}，目标 ${escapeHtml(String(item.target))} mm³。</p>`).join("")
     + (report.issues || []).map(issue => `<p>${escapeHtml(issue.severity)} · ${escapeHtml(issue.code)}：${escapeHtml(issue.message || "")}</p>`).join("")
     + (report.visualEvidence ? `<p>视觉证据：${escapeHtml(report.visualEvidence.summary || report.visualEvidence.status)}</p>`
@@ -609,6 +613,48 @@ function renderUnifiedReview(report) {
     const link = document.createElement("a"); link.href = report.reportUrl; link.download = "unified-review.json";
     link.textContent = "下载统一审查报告"; els.unifiedReviewPanel.append(link);
   }
+  if (state.currentAssembly?.engine === "nvidia-usd-brep") renderNativeReviewEditor();
+}
+
+function renderNativeReviewEditor() {
+  const section = document.createElement("section");
+  section.innerHTML = `<h3>审查后二次修改 · NVIDIA 原生</h3>
+    <textarea id="nativeReviewInstructions" rows="2" placeholder="可补充明确修改要求，例如：太阳轮齿宽改为 12 mm；留空则提取报告中可安全执行的建议"></textarea>
+    <button type="button" id="nativeReviewPropose">生成修改建议</button>
+    <button type="button" id="nativeReviewApply" disabled>应用补丁并重新联合审查</button>
+    <pre id="nativeReviewProposal">修改建议会显示零件、特征和参数补丁；证据不足的问题保留待验。</pre>`;
+  els.unifiedReviewPanel.append(section);
+  section.querySelector("#nativeReviewPropose").addEventListener("click", async event => {
+    const button = event.currentTarget;
+    setBusy(button, true);
+    const output = section.querySelector("#nativeReviewProposal");
+    try {
+      const result = await api("/api/review/improve", { method: "POST", body: {
+        assemblyId: state.currentAssembly.id, revisionId: state.currentAssembly.currentRevision,
+        evidenceHash: state.currentUnifiedReview.review?.cache?.evidenceHash,
+        instructions: section.querySelector("#nativeReviewInstructions").value
+      } });
+      state.nativeEditProposal = result.proposal;
+      output.textContent = JSON.stringify({ status: result.proposal.status, revision: result.proposal.revisionId,
+        patch: result.proposal.patch, blockedFindings: result.proposal.blockedFindings }, null, 2);
+      section.querySelector("#nativeReviewApply").disabled = result.proposal.status !== "ready";
+    } catch (error) { output.textContent = error.message; }
+    finally { setBusy(button, false); }
+  });
+  section.querySelector("#nativeReviewApply").addEventListener("click", async event => {
+    const button = event.currentTarget;
+    const proposal = state.nativeEditProposal;
+    if (!proposal) return;
+    setBusy(button, true);
+    try {
+      const result = await api("/api/review/improve", { method: "POST", body: { assemblyId: state.currentAssembly.id,
+        revisionId: proposal.revisionId, apply: true, proposalId: proposal.id, editPatch: proposal.patch } });
+      await updateAssembly(result.assembly);
+      els.reviewProfile.value = "delivery";
+      await runUnifiedReview();
+    } catch (error) { setError(error); }
+    finally { setBusy(button, false); }
+  });
 }
 
 async function runUnifiedReview() {
@@ -623,7 +669,14 @@ async function runUnifiedReview() {
     const report = await api("/api/review", { method: "POST", body: { assemblyId: target.id,
       revisionId: target.currentRevision || target.reviewRevisionId || null, profile, runVisual: profile === "delivery",
       screenshots, conversationId: state.conversationId, userRequest: state.messages.filter(item => item.role === "user").at(-1)?.content || "" } });
-    if (state.usdExportTarget?.id === target.id) renderUnifiedReview(report);
+    if (state.usdExportTarget?.id === target.id) {
+      if (state.currentAssembly && report.visualReview) {
+        state.currentVisualReview = report.visualReview;
+        state.currentAssembly.visualReview = report.visualReview;
+        renderVisualReview();
+      }
+      renderUnifiedReview(report);
+    }
     els.renderState.textContent = "联合审查完成，结果见统一报告";
   } catch (error) { setError(error); }
   finally { els.unifiedReviewBtn.disabled = !state.usdExportTarget?.id; }
@@ -990,7 +1043,9 @@ function renderValidationStages(report) {
     topology_facts: "事实",
     fbs_acceptance: "FBS",
     local_repair: "局部修改",
-    step_roundtrip: "STEP回归"
+    step_roundtrip: "STEP回归",
+    usd_roundtrip: "USD回读",
+    motion_interference: "运动干涉"
   };
   const stages = Array.isArray(report.reviewStages) ? report.reviewStages : [];
   if (!stages.length) {
@@ -1092,10 +1147,17 @@ function renderSearchResults() {
 function updateAssembly(assembly) {
   if (!assembly) return;
   const previousAssemblyId = state.currentAssembly?.id || null;
+  const previousRevision = state.currentAssembly?.currentRevision;
   if (assembly.id && assembly.id !== previousAssemblyId && assembly.status !== "done") {
     clearGeneratedPreview(assembly.status === "error" ? "本次装配生成失败" : "正在构建新的装配预览...");
   }
   state.currentAssembly = assembly;
+  if (assembly.engine === "nvidia-usd-brep" && assembly.plan) {
+    state.currentPlan = assembly.plan;
+    state.nativePart = assembly.plan;
+    els.code.value = JSON.stringify(assembly.plan, null, 2);
+    localStorage.setItem("ai-cad-code", els.code.value);
+  }
   if (!state.currentPlan && assembly.parts?.length) {
     state.currentPlan = {
       name: assembly.name,
@@ -1121,7 +1183,7 @@ function updateAssembly(assembly) {
     };
   }
   state.activeFeatureId = assembly.activeFeatureId || state.activeFeatureId;
-  state.currentVisualReview = assembly.visualReview || (previousAssemblyId === assembly.id ? state.currentVisualReview : null);
+  state.currentVisualReview = assembly.visualReview || (previousAssemblyId === assembly.id && previousRevision === assembly.currentRevision ? state.currentVisualReview : null);
   fsb.emit("assembly.updated", { id: assembly.id, status: assembly.status, revision: assembly.currentRevision || null });
   const outputStrategy = assembly.outputStrategy || {
     coreRepresentation: "参数化特征计划 + VAE/latent 学习",
@@ -1147,10 +1209,10 @@ function updateAssembly(assembly) {
   state.usdExportTarget = assembly;
   els.unifiedReviewBtn.disabled = !assembly.id;
   if (assembly.validation?.review) renderUnifiedReview(assembly.validation);
-  setDownload(els.usdBrepLink, null);
-  setDownload(els.kernelCodeLink, null);
+  setDownload(els.usdBrepLink, assembly.usdBrepUrl);
+  setDownload(els.kernelCodeLink, assembly.codeUrl);
   els.modelKernel.textContent = `本次模型：${assembly.engine || "cadquery"}`;
-  setDownload(els.usdLink, null);
+  setDownload(els.usdLink, assembly.usdMeshUrl);
   els.usdExportBtn.disabled = state.usdExportBusy || !state.usdBrepAvailable || assembly.status !== "done" || !assembly.stlUrl;
   setDownload(els.assemblyStlLink, assembly.stlUrl);
   setDownload(els.kinematicPackageLink, assembly.kinematicPackageUrl);
@@ -1516,7 +1578,7 @@ async function improveFromVisualReview({ rethrow = false, reReview = true } = {}
     renderVisualReview();
     await loadParametricWorkspace();
     let followUpReview = null;
-    if (reReview && result.assembly?.status === "done") {
+    if (reReview && ["done", "validation_failed"].includes(result.assembly?.status)) {
       els.visualImproveStatus.textContent = "改进已通过构建与几何验证，正在自动生成复审报告...";
       try {
         followUpReview = await runVisualReview({ rethrow: true, autoImprove: false });
@@ -2063,6 +2125,11 @@ async function previewCadQuery({ force = false, download = false } = {}) {
 }
 
 async function showPartPreview(preview, { download = false } = {}) {
+    if (preview.assembly?.engine === "nvidia-usd-brep") {
+      await updateAssembly(preview.assembly);
+      if (download && preview.stlUrl) window.location.href = preview.stlUrl;
+      return;
+    }
     state.currentJobId = preview.id;
     els.jobId.textContent = preview.id;
     els.renderState.textContent = preview.status === "validation_failed" ? "预览已生成，审查尚未通过" : "预览完成";

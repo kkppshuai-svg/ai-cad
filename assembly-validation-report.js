@@ -50,6 +50,7 @@ export function composeAssemblyValidationReport({
     manufacturingIssues: assessManufacturability(plan, Object.fromEntries(geometryReports.map((entry) => [entry.partId, entry])))
   });
 
+  if (geometryValidation.motionReview) report.motionReview = structuredClone(geometryValidation.motionReview);
   appendStageIssues(report, "brep_review", validateBrepReviewCoverage(plan, buildSummary));
   report.independentReferences = [];
   const unknownMeasurements = [];

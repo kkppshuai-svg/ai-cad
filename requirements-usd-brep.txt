@@ -1,1 +1,2 @@
 usd-brep==1.0.0
+shapely>=2.1,<3

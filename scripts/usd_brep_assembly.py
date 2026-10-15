@@ -31,8 +31,6 @@ def build_assembly(plan, output_dir):
         raise ValueError("Native assembly requires 1..12 uniquely named parts")
     if any(not isinstance(i, str) or not i.replace('_','').replace('-','').isalnum() or not i.isascii() for i in ids):
         raise ValueError("Native part IDs must be ASCII letters, digits, underscores or hyphens")
-    if any(p.get("measurements") for p in parts):
-        raise ValueError("Native assembly measurements are not implemented; cannot silently skip them")
     if plan.get("prototype") == "planetary-5to1-native-v1":
         gears = {p['id']: next((n.get('params',{}) for n in p.get('featureTree',[]) if n['type']=='base_spur_gear'), {}) for p in parts}
         if set(ids) != {'sun','planet_1','planet_2','planet_3','ring','carrier'}:
@@ -71,8 +69,22 @@ def build_assembly(plan, output_dir):
             bodies.append(body)
             meshes.append(mesh)
             traces[part['id']] = trace
+            issues, measurements = [], []
+            for index, spec in enumerate(part.get('measurements', [])):
+                mid = spec.get('id', 'measurement-'+str(index+1))
+                kind = spec.get('kind', 'bbox')
+                target, tolerance = float(spec.get('target', spec.get('value', float('nan')))), float(spec.get('tolerance', 0.01))
+                verified = kind == 'volume' and spec.get('unit', 'mm3') in ('mm3','mm³') and math.isfinite(target) and math.isfinite(tolerance) and tolerance >= 0
+                measured = original['volume'] if kind == 'volume' else None
+                passed = verified and abs(measured-target) <= tolerance
+                measurements.append({**spec, 'id':mid, 'target':target if math.isfinite(target) else None, 'measured':measured,
+                    'status':'pass' if passed else 'fail' if verified else 'unverified', 'source':'native-signed-volume' if verified else 'unsupported-native-measurement'})
+                if not passed:
+                    issues.append({'code':'DIMENSION_MISMATCH' if verified else 'NATIVE_MEASUREMENT_UNVERIFIED',
+                        'severity':'warning' if spec.get('required') is False else 'error', 'measurementId':mid,
+                        'message':'Native volume outside tolerance' if verified else 'Required native measurement has no exact evidence'})
             reports.append({"partId": part['id'], "valid": True, "facts": original,
-                            "issues": [], "measurements": [], "usdRoundTrip": roundtrip})
+                            "issues": issues, "measurements": measurements, "usdRoundTrip": roundtrip})
         exact = tmp/'assembly.usda'
         b.usd.export_breps(bodies, str(exact))
         exact.write_text(stage_units(exact.read_text(encoding='utf-8')), encoding='utf-8')
@@ -98,10 +110,17 @@ def build_assembly(plan, output_dir):
               "usdRoundTrip":{"valid":True,"issues":[],"parts":comparisons},
               "roundTrip":"passed", "bodyCount":len(bodies), "durationMs":(time.perf_counter()-start)*1000,
               "interferenceStatus":"unverified", "motionStatus":"unverified",
-              "limitations":["Sampled involute flanks; radial root transitions", "Motion and strength not qualified"]}
+              "limitations":["Sampled involute flanks; radial root transitions", "Motion scope is reported separately; strength unverified"]}
     if plan.get('prototype') == 'planetary-5to1-native-v1':
         result['kinematicArithmetic'] = {"ratio":1+zr/zs, "sunTeeth":zs, "planetTeeth":zp, "ringTeeth":zr,
             "assemblyPhaseCondition":(zs+zr)/3, "assumption":"ring fixed, sun input, carrier output", "status":"pass"}
+    if plan.get('prototype') == 'planetary-5to1-native-v1':
+        from native_motion_review import review_motion
+        result['motionReview'] = review_motion(plan, bodies)
+        result['motionStatus'] = result['motionReview']['status']
+        result['interferenceStatus'] = result['motionReview']['status']
+        result['durationMs'] = (time.perf_counter()-start)*1000
+        (output/'motion-review.json').write_text(json.dumps(result['motionReview'],indent=2),encoding='utf-8')
     (output/'native-build-report.json').write_text(json.dumps(result,indent=2),encoding='utf-8')
     (output/'native-feature-plan.json').write_text(json.dumps(plan,ensure_ascii=False,indent=2),encoding='utf-8')
     return result

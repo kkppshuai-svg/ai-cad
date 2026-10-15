@@ -39,6 +39,7 @@ X-AI-CAD-Token: <requestToken>
 | POST | `/api/assembly/:id/revert` | 回退到指定修订 |
 | POST | `/api/assembly/repair` | 重新构建 `validation_failed` 任务 |
 | POST | `/api/review` | 联合 BRep + 视觉审查；默认 delivery，runVisual + screenshots 执行视觉检查，详见[协议](unified-brep-review.md) |
+| POST | `/api/review/improve` | NVIDIA 原生审查后二次修改：生成绑定修订的建议，再应用补丁并重建草稿；新版本须重新视觉审查 |
 | POST | `/api/visual-review` | 对当前工程预览执行视觉审查，并更新统一交付结论 |
 | POST | `/api/visual-review/repair` | 将审查报告转为内部修复轮次 |
 | POST | `/api/visual-review/improve` | 选择可操作发现并生成验证后的修订 |

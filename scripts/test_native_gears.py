@@ -46,6 +46,18 @@ class NativeGearTests(unittest.TestCase):
         self.assertEqual(1+zr/zs,5)
         self.assertEqual((zs+zr)%3,0)
 
+    def test_native_rebuild_remeasures_volume_and_reports_unsupported_dimensions(self):
+        from usd_brep_assembly import build_assembly
+        part = {'id':'box','featureTree':[{'id':'box.base','type':'base_box','params':{'size':[10,10,10]}}],
+                'measurements':[{'id':'volume','kind':'volume','target':2000,'tolerance':0.001},
+                                {'id':'length','kind':'bbox','axis':'x','target':10}]}
+        with tempfile.TemporaryDirectory() as directory:
+            report = build_assembly({'parts':[part]}, directory)
+            self.assertEqual(report['parts'][0]['measurements'][0]['status'],'fail')
+            self.assertEqual(report['parts'][0]['measurements'][0]['measured'],1000)
+            self.assertEqual(report['parts'][0]['measurements'][1]['status'],'unverified')
+            self.assertEqual(len(report['parts'][0]['issues']),2)
+
 
 if __name__ == '__main__':
     unittest.main()

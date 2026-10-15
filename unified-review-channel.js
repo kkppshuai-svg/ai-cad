@@ -21,7 +21,7 @@ export class UnifiedReviewChannel {
 
   async bind(job) {
     const root = await realpath(job.outputDir);
-    const files = [...new Set([job.stepPath, job.usdBrepPath, job.stlPath, job.glbPath,
+    const files = [...new Set([job.stepPath, job.usdBrepPath, job.stlPath, job.glbPath, job.motionReviewPath,
       ...(job.parts || []).flatMap(part => [part.localStepPath, part.localUsdBrepPath])].filter(Boolean))];
     job.reviewPlanChecksum = digest(job.plan);
     job.reviewBindings = await Promise.all(files.map(async file => {
@@ -54,11 +54,12 @@ export class UnifiedReviewChannel {
       fingerprints.push([binding.path, current]);
       if (!current || current !== binding.sha256) issues.push({ code: "REVIEW_ARTIFACT_CHANGED", severity: "error", stage: "integrity", artifact: path.basename(binding.path), message: "Artifact content is missing or changed since kernel validation; rebuild the model" });
     }
-    const key = digest({ source: job.validationReport, plan: job.reviewPlanChecksum, currentPlan: digest(job.plan),
-      policy: REVIEW_POLICY, bindings: job.reviewBindings, fingerprints, visual: job.visualReview || null, revision: reviewRevisionId(job), profile });
+    const evidenceHash = digest({ source: job.validationReport, plan: job.reviewPlanChecksum, currentPlan: digest(job.plan),
+      policy: REVIEW_POLICY, bindings: job.reviewBindings, fingerprints, visual: job.visualReview || null, revision: reviewRevisionId(job) });
+    const key = digest({ evidenceHash, profile });
     const cached = !refresh && this.cache.get(key);
     if (cached) return { ...structuredClone(cached), review: { ...cached.review,
-      cache: { hit: true, durationMs: performance.now()-start, evidenceHash: key, artifactCount: fingerprints.length } } };
+      cache: { hit: true, durationMs: performance.now()-start, evidenceHash, artifactCount: fingerprints.length } } };
     const source = structuredClone(job.validationReport || { valid: false, issues: [{ code: "MISSING_UNIFIED_REVIEW", severity: "error", message: "Kernel review evidence is missing" }] });
     source.issues = [...(source.issues || []), ...issues];
     source.summary = { errors: 0, warnings: 0, info: 0 };
@@ -66,7 +67,7 @@ export class UnifiedReviewChannel {
     source.blockingErrorCount = source.summary.errors;
     source.valid = source.valid === true && source.blockingErrorCount === 0;
     const report = attachUnifiedDecision(source, { engine: job.engine, revisionId: reviewRevisionId(job),
-      visualReview: job.visualReview, cache: { hit: false, durationMs: performance.now()-start, evidenceHash: key, artifactCount: fingerprints.length } });
+      visualReview: job.visualReview, cache: { hit: false, durationMs: performance.now()-start, evidenceHash, artifactCount: fingerprints.length } });
     report.status = profile === "geometry" ? report.review.geometryDecision : report.review.deliveryDecision;
     report.profile = profile;
     report.reviewRevisionId = reviewRevisionId(job);

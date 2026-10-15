@@ -40,6 +40,9 @@ test("geometry pass cannot become delivery pass without current visual evidence"
   const file=path.join(root,"solid.step"); await writeFile(file,"geometry");
   const job={outputDir:root,stepPath:file,plan:{parts:[]},validationReport:cleanReport(),currentRevision:"rev-0001"};
   const channel=new UnifiedReviewChannel(); await channel.bind(job);
+  const geometry=await channel.review(job,{profile:"geometry"});
+  const delivery=await channel.review(job,{profile:"delivery"});
+  assert.equal(geometry.review.cache.evidenceHash,delivery.review.cache.evidenceHash);
   assert.equal((await channel.review(job,{profile:"delivery"})).status,"pending");
   job.visualReview={revisionId:"rev-0000",status:"pass"};
   assert.equal((await channel.review(job,{profile:"delivery"})).status,"pending");

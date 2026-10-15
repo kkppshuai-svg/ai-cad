@@ -57,6 +57,8 @@ import { buildNema23LBracketPlan } from "./nema23-template.js";
 import { MAX_ASSEMBLY_PARTS } from "./assembly-plan-limits.js";
 import { normalizeFbsAnalysis } from "./fbs-workflow.js";
 import { CadLatentTrainingManager } from "./cad-latent-training.js";
+import { initializeNativeRevision, editNativeRevision, revertNativeRevision, isNativeJob, persistNativeState, nativeAssemblyReviewEvidence } from "./native-revisions.js";
+import { createReviewProposal, planReviewProposal, assertProposalPatch } from "./review-improvement.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 await loadEnvFile(path.join(__dirname, ".env.local"));
@@ -246,6 +248,10 @@ async function handleApi(req, res, url) {
     if (parametricRoute.action === "edit") {
       const body = await readJson(req);
       const patch = body.editPatch || body.patch || body;
+      if (isNativeJob(job)) {
+        const revision = await editNativeRevision({ root: assemblyDir, job, patch, bridge: usdBrep, channel: unifiedReview, sourceDir: __dirname });
+        return json(res, revision.status === "failed" ? 422 : 200, { assembly: publicAssembly(job), revision });
+      }
       const result = await editAssemblyRevision({
         revisionRoot: assemblyDir,
         job,
@@ -264,6 +270,10 @@ async function handleApi(req, res, url) {
       const body = await readJson(req);
       const revisionId = String(body.revisionId || "").trim();
       if (!revisionId) return json(res, 400, { error: "revisionId is required" });
+      if (isNativeJob(job)) {
+        const revision = await revertNativeRevision({ root: assemblyDir, job, revisionId, channel: unifiedReview });
+        return json(res, 200, { assembly: publicAssembly(job), revision });
+      }
       const reverted = await withAssemblyRevisionLock(assemblyDir, job.id, async () => {
         const state = await loadRevisionState(assemblyDir, job.id, revisionId);
         const staging = structuredClone(job);
@@ -353,22 +363,21 @@ async function buildNativeUsdAssemblyPreview(input) {
     stlPath: path.join(outputDir, "native-preview.stl"), usdBrepPath: path.join(outputDir, "native-solid.usda") };
   job.constraintReport = analyzeAssemblyConstraints(plan);
   // Geometry validity and serialization cannot stand in for an assembly interference check.
-  const geometryParts = report.parts.map((part, index) => ({ ...part, issues: [...(part.issues || []), ...(index === 0 ? [
-    { code: "NATIVE_ASSEMBLY_INTERFERENCE_UNVERIFIED", severity: "error", message: "原生装配已生成；静态干涉和运动啮合尚未完成验证" }
-  ] : [])] }));
+  const geometryValidation = nativeAssemblyReviewEvidence(report,plan);
   job.validationReport = composeAssemblyValidationReport({ plan, constraintReport: job.constraintReport, assemblyId: id,
     buildSummary: { engine: job.engine, parts, usdBrepPath: job.usdBrepPath,
-      geometryValidation: { parts: geometryParts, interferences: [], usdRoundTrip: report.usdRoundTrip } } });
+      geometryValidation } });
   await unifiedReview.bind(job);
   job.latestUnifiedReview = await unifiedReview.review(job);
   if (job.latestUnifiedReview.status === "pass") job.status = "done";
   assemblyJobs.set(id, job);
   await writeFile(path.join(outputDir, "unified-review.json"), JSON.stringify(job.latestUnifiedReview, null, 2), "utf8");
-  for (const script of ["usd_brep_assembly.py", "usd_brep_build.py", "usd_brep_export.py", "native_gears.py", "brep_review_core.py"]) {
+  for (const script of ["usd_brep_assembly.py", "usd_brep_build.py", "usd_brep_export.py", "native_gears.py", "native_motion_review.py", "brep_review_core.py"]) {
     await copyFile(path.join(__dirname, "scripts", script), path.join(outputDir, script));
   }
-  return { id, status: job.status, reviewRevisionId: reviewRevisionId(job), engine: job.engine,
-    part: { id: "native_assembly", name: plan.name }, plan, nativeReport: report, unifiedReview: job.latestUnifiedReview,
+  await initializeNativeRevision({ root: assemblyDir, job, channel: unifiedReview });
+  return { id, status: job.status, currentRevision: job.currentRevision, assembly: publicAssembly(job), reviewRevisionId: reviewRevisionId(job), engine: job.engine,
+    part: { id: "native_assembly", name: plan.name }, plan: job.plan, nativeReport: report, unifiedReview: job.latestUnifiedReview,
     stlUrl: artifactUrl(job, job.stlPath), usdBrepUrl: artifactUrl(job, job.usdBrepPath),
     usdMeshUrl: artifactUrl(job, path.join(outputDir, "native-mesh.usda")),
     codeUrl: artifactUrl(job, path.join(outputDir, "usd_brep_assembly.py")),
@@ -424,7 +433,8 @@ async function buildNativeUsdPreview(input) {
   await copyFile(path.join(__dirname, "scripts", "usd_brep_export.py"), path.join(outputDir, "usd_brep_export.py"));
   await copyFile(path.join(__dirname, "scripts", "brep_review_core.py"), path.join(outputDir, "brep_review_core.py"));
   await copyFile(path.join(__dirname, "scripts", "native_gears.py"), path.join(outputDir, "native_gears.py"));
-  return { id, status: job.status, reviewRevisionId: reviewRevisionId(job), engine: "nvidia-usd-brep", part, nativeReport: report, unifiedReview: nativeAudit,
+  await initializeNativeRevision({ root: assemblyDir, job, channel: unifiedReview });
+  return { id, status: job.status, currentRevision: job.currentRevision, assembly: publicAssembly(job), reviewRevisionId: reviewRevisionId(job), engine: "nvidia-usd-brep", part, nativeReport: report, unifiedReview: job.latestUnifiedReview,
     stlUrl: artifactUrl(job, job.stlPath), usdBrepUrl: artifactUrl(job, path.join(outputDir, "native-solid.usda")),
     usdMeshUrl: artifactUrl(job, path.join(outputDir, "native-mesh.usda")),
     codeUrl: artifactUrl(job, path.join(outputDir, "usd_brep_build.py")),
@@ -445,10 +455,64 @@ async function handleUnifiedReview(req, res) {
       runVisual: ({ screenshots, revisionId }) => runVisualReview({ assemblyId: id, screenshots, revisionId,
         conversationId: body.conversationId, userRequest: body.userRequest }) });
     job.latestUnifiedReview = report;
+    if (isNativeJob(job)) await persistNativeState(assemblyDir, job);
     await writeFile(path.join(job.outputDir, "unified-review.json"), JSON.stringify(report, null, 2), "utf8");
     return json(res, 200, { ...report, visualReview: publicVisualReview(job.visualReview),
       reportUrl: artifactUrl(job, path.join(job.outputDir, "unified-review.json")) });
   });
+}
+
+async function handleNativeReviewImprove(req, res) {
+  const body = await readJson(req);
+  const id = String(body.assemblyId || "");
+  if (!/^[A-Za-z0-9_-]+$/.test(id)) return json(res, 400, { error: "Invalid assemblyId" });
+  const job = assemblyJobs.get(id) || await restoreAssemblyJob(assemblyDir, id);
+  if (!job) return json(res, 404, { error: "Assembly not found" });
+  assemblyJobs.set(id, job);
+  return handleNativeReviewImproveBody(body, res, job);
+}
+
+async function handleNativeReviewImproveBody(body, res, job) {
+  if (!isNativeJob(job)) return json(res, 422, { error: "此二次修改入口仅使用 NVIDIA 原生 BRep" });
+  if (body.revisionId && body.revisionId !== job.currentRevision) return json(res, 409, { error: "修订已变化，请重新审查" });
+  if (body.apply === true) {
+    const proposal = job.pendingReviewProposal;
+    if (!proposal || body.proposalId !== proposal.id) return json(res, 409, { error: "请先生成并检查当前审查的修改建议" });
+    assertProposalPatch(proposal, body.editPatch);
+    const revision = await editNativeRevision({ root: assemblyDir, job, patch: proposal.patch,
+      bridge: usdBrep, channel: unifiedReview, sourceDir: __dirname, provenance: proposal });
+    return json(res, revision.status === "failed" ? 422 : 200, { ok: revision.status === "draft", revision,
+      assembly: publicAssembly(job), visualReReviewRequired: true,
+      reply: "已按建议生成原生候选修订，重新审查后的结论才对新版本有效。" });
+  }
+  const report = await unifiedReview.review(job, { profile: "delivery", refresh: true });
+  const sourceRevision = job.currentRevision;
+  if (body.evidenceHash && body.evidenceHash !== report.review.cache.evidenceHash) return json(res, 409, { error: "审查证据已变化，请刷新报告" });
+  let proposal;
+  const instructions = sanitizeText(body.instructions || "", 2000);
+  if (instructions) {
+    const findings = createReviewProposal(job, report, []).findings;
+    const prompt = [
+        'Return JSON only: {"editPatch":{"baseRevision":"...","operations":[...]},"reply":"..."}.',
+        'Generate a minimal parameter patch for NVIDIA USD BRep/SMLib only. Never generate CadQuery or STEP instructions.',
+        'Allowed operations: set_param {partId,featureId,path:"params.name",value}, set_part_pose {partId,pose:{translate:[x,y,z],rotate:[rx,ry,rz]}}, add_feature {partId,feature}.',
+        'An operation MUST include the "op" key. Example: {"op":"set_param","partId":"sun","featureId":"sun.base","path":"params.width","value":12}. Do not emit JSON Patch replace/add/remove or a type key instead of op.',
+        'Native features: base_box/base_cylinder/base_sphere/base_spur_gear, hole, cut_box, add_primitive, dimension. Do not remove/disable features, alter measurement targets, change engine or invent dimensions. Use explicit user dimensions; otherwise return {"error":"需要的具体测量或参数"}.',
+        'Preserve tooth ratio and all unrelated geometry. Review evidence gaps require verification, not geometry changes that conceal the gap.',
+        `Revision: ${sourceRevision}`, `Plan: ${JSON.stringify(job.plan)}`,
+        `Unified findings: ${JSON.stringify(findings)}`, `Selected findings: ${JSON.stringify(body.findingIds || [])}`,
+        `User modification instruction: ${instructions}`
+      ].join("\n");
+    proposal = await planReviewProposal({ job, report, instructions, findingIds:body.findingIds,
+      generate: async ({attempt,feedback}) => {
+        const generated = await invokeLlmText({ label:"native-review-edit", threadKey:`native-review-edit:${job.id}:${sourceRevision}:${attempt}`,
+          prompt: prompt + (feedback.length ? `\nRejected prior patches and validation errors; repair the schema and keep the user scope:\n${JSON.stringify(feedback)}` : ""),
+          images:[], timeoutMs:codexPlannerTimeoutMs, maxBuffer:200000 });
+        return extractJsonObject(generated.text);
+      } });
+  } else proposal = createReviewProposal(job, report, body.findingIds);
+  job.pendingReviewProposal = proposal.status === "ready" ? proposal : null;
+  return json(res, 200, { ok: true, proposal });
 }
 
 async function handleKernelCompare(req, res) {
@@ -532,6 +596,7 @@ async function handleAssemblyRepair(req, res, url) {
   if (!assemblyId) return json(res, 400, { error: "assemblyId is required" });
   const failedJob = assemblyJobs.get(assemblyId) || await restoreAssemblyJob(assemblyDir, assemblyId).catch(() => null);
   if (!failedJob) return json(res, 404, { error: "Assembly job not found" });
+  if (isNativeJob(failedJob)) return handleNativeReviewImproveBody({ ...body, apply: true }, res, failedJob);
   if (failedJob.status !== "validation_failed") {
     return json(res, 409, { error: `Assembly does not need geometry repair (current status: ${failedJob.status || "unknown"})`, assembly: publicAssembly(failedJob) });
   }
@@ -556,6 +621,10 @@ async function handleVisualReviewRepair(req, res, url) {
   if (!assemblyId || !conversationId) return json(res, 400, { error: "assemblyId and conversationId are required" });
   const job = assemblyJobs.get(assemblyId) || await restoreAssemblyJob(assemblyDir, assemblyId).catch(() => null);
   if (!job) return json(res, 404, { error: "Assembly job not found" });
+  if (isNativeJob(job)) {
+    const result = await improveFromVisualReview(body);
+    return json(res, result.ok ? 200 : 422, result);
+  }
   const review = job.visualReview || body.review;
   if (!review || typeof review !== "object") return json(res, 409, { error: "请先运行视觉审查" });
   if (review.revisionId && job.currentRevision && String(review.revisionId) !== String(job.currentRevision)) {
@@ -703,6 +772,7 @@ const apiRoutes = createRouteTable([
   { method: "POST", path: "/api/assembly/repair", handler: handleAssemblyRepair },
   { method: "POST", path: "/api/visual-review/repair", handler: handleVisualReviewRepair },
   { method: "POST", path: "/api/visual-review/improve", handler: handleVisualReviewImprove },
+  { method: "POST", path: "/api/review/improve", handler: handleNativeReviewImprove },
   { method: "POST", path: "/api/generate", handler: handleGenerate },
   { method: "POST", path: "/api/chat", handler: handleChat },
   { method: "POST", path: "/api/chat/stop", handler: handleChatStop },
@@ -1603,6 +1673,7 @@ async function runCadQueryAssemblyBuild({ manifestPath }) {
 }
 
 function buildAssembly(plan, repairContext = {}) {
+  if (plan.engine === "nvidia-usd-brep") throw Object.assign(new Error("NVIDIA 原生模型必须通过原生修订通道重建，禁止 CadQuery 回退"), { status: 422 });
   return buildValidatedAssembly({ plan, repairContext, deps: assemblyBuildDeps() });
 }
 
@@ -1633,6 +1704,7 @@ function conversationTurnDeps() {
 }
 
 async function executeParametricRevisionBuild({ plan, outputDir }) {
+  if (plan.engine === "nvidia-usd-brep") throw new Error("原生模型禁止进入 CadQuery 修改链路");
   const manifest = {
     name: plan.name || "AI_CAD_Assembly",
     outputDir,
@@ -1923,6 +1995,7 @@ async function runVisualReview(body = {}) {
   if (reviewRevisionId(job) !== reviewedRevisionId) throw Object.assign(new Error("Model changed during visual review"), { status: 409 });
   job.visualReview = await persistVisualReviewReport(job, report);
   job.latestUnifiedReview = await unifiedReview.review(job, { profile: "delivery" });
+  if (isNativeJob(job)) await persistNativeState(assemblyDir, job);
   publish("assembly:review_done", publicAssembly(job));
   return publicVisualReview(job.visualReview);
 }
@@ -1933,6 +2006,17 @@ async function improveFromVisualReview(body = {}) {
   const job = assemblyJobs.get(assemblyId) || await restoreAssemblyJob(assemblyDir, assemblyId).catch(() => null);
   if (!job) return { ok: false, code: "ASSEMBLY_NOT_FOUND", error: "Assembly job not found" };
   assemblyJobs.set(job.id, job);
+  if (isNativeJob(job)) {
+    const report = await unifiedReview.review(job, { profile: "delivery", refresh: true });
+    if (body.reviewRevisionId && body.reviewRevisionId !== job.currentRevision) return { ok: false, code: "REVIEW_STALE", error: "审查已过期，请对当前原生修订重新审查" };
+    const ids = Array.isArray(body.findingIds) ? body.findingIds.map(id => `visual-${id}`) : undefined;
+    const proposal = createReviewProposal(job, report, ids);
+    if (proposal.status !== "ready") return { ok: false, code: "MEASUREMENT_REQUIRED", error: "审查问题需要补充可靠目标或测量；不会切换 CadQuery", proposal };
+    const revision = await editNativeRevision({ root: assemblyDir, job, patch: proposal.patch, bridge: usdBrep,
+      channel: unifiedReview, sourceDir: __dirname, provenance: proposal });
+    return { ok: revision.status === "draft", revision, assembly: publicAssembly(job), review: null,
+      visualReReviewRequired: true, reply: "原生修改已生成；旧视觉结论已清除，须对新版本重新联合审查。" };
+  }
   const review = job.visualReview;
   const eligibility = visualReviewImprovementEligibility(review, job.currentRevision);
   if (!eligibility.ok) return { ok: false, code: eligibility.code, error: eligibility.message, review: publicVisualReview(review) };
@@ -2307,6 +2391,7 @@ function publicAssembly(job) {
     activePartId: job.plan?.activePartId || null,
     activeFeatureId: job.plan?.activeFeatureId || null,
     currentRevision: job.currentRevision || null,
+    revisionDisposition: job.revisionDisposition || null,
     relations: job.plan?.relations || [],
     joints: job.plan?.joints || [],
     constraints: job.plan?.constraints || [],
@@ -2315,8 +2400,14 @@ function publicAssembly(job) {
     constraintAnalysis: job.constraintReport || null,
     lastRevisionBuild: job.lastRevisionBuild || null,
     engine: job.engine || "cadquery",
+    plan: isNativeJob(job) ? job.plan : undefined,
     latentLearning: latentTraining.status(),
-    outputStrategy: {
+    outputStrategy: isNativeJob(job) ? {
+      coreRepresentation: "原生参数化特征计划与候选修订",
+      geometryKernel: "NVIDIA USD BRep / SMLib",
+      primaryDelivery: "原生 USD BRep 精确实体",
+      compatibility: "USD Mesh/STL 用于显示；每次修改都由 NVIDIA 重建并重新审查"
+    } : {
       coreRepresentation: "参数化特征计划 + VAE/latent 学习",
       geometryKernel: "CadQuery BREP 几何内核",
       primaryDelivery: "零件 STEP/FCStd 是主要交付文件",
@@ -2338,7 +2429,8 @@ function publicAssembly(job) {
       geometryValidation: part.geometryValidation || null,
       inertial: part.inertial || null,
       stepUrl: part.stepUrl,
-      stlUrl: part.stlUrl,
+      stlUrl: part.stlUrl || artifactUrl(job, part.stlPath),
+      usdBrepUrl: artifactUrl(job, part.localUsdBrepPath),
       pngUrl: part.pngUrl
     })),
     fcstdUrl: job.fcstdPath && existsSync(job.fcstdPath) ? artifactUrl(job, job.fcstdPath) : null,
@@ -2346,6 +2438,11 @@ function publicAssembly(job) {
     stlUrl: job.stlPath && existsSync(job.stlPath) ? artifactUrl(job, job.stlPath) : null,
     glbUrl: job.glbPath && existsSync(job.glbPath) ? artifactUrl(job, job.glbPath) : null,
     glbWarning: job.glbWarning || null,
+    usdBrepUrl: artifactUrl(job, job.usdBrepPath),
+    usdMeshUrl: artifactUrl(job, job.usdMeshPath),
+    codeUrl: artifactUrl(job, job.nativeCodePath),
+    reviewRevisionId: reviewRevisionId(job),
+    motionReviewUrl: artifactUrl(job, job.motionReviewPath),
     kinematicsUrl: job.kinematicsPath && existsSync(job.kinematicsPath) ? `/assemblies/${job.id}/${path.basename(job.kinematicsPath)}` : null,
     constraintManifestUrl: job.constraintManifestPath && existsSync(job.constraintManifestPath) ? `/assemblies/${job.id}/${path.basename(job.constraintManifestPath)}` : null,
     kinematicPackageUrl: job.kinematicArchivePath && existsSync(job.kinematicArchivePath) ? `/assemblies/${job.id}/${path.basename(job.kinematicArchivePath)}` : null,

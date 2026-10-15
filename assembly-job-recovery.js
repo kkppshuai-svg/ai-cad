@@ -3,8 +3,15 @@ import path from "node:path";
 
 import { restoreJobFromRevisionState } from "./parametric-api.js";
 import { getCurrentRevision, loadRevisionState } from "./revision-store.js";
+import { restoreNativeJob } from "./native-revisions.js";
 
 export async function restoreAssemblyJob(revisionRoot, assemblyId) {
+  const native = await restoreNativeJob(revisionRoot, assemblyId);
+  if (native) {
+    const visual = await restoreVisualReview(revisionRoot, assemblyId);
+    if (visual?.revisionId === native.currentRevision) native.visualReview = visual;
+    return native;
+  }
   const current = await getCurrentRevision(revisionRoot, assemblyId);
   if (!current?.id) return null;
   const state = await loadRevisionState(revisionRoot, assemblyId, current.id, { allowLegacyStateChecksum: true });
@@ -50,6 +57,8 @@ export async function restoreLatestAssemblyJob(revisionRoot) {
   for (const entry of entries) {
     if (!entry.isDirectory()) continue;
     try {
+      const native = await restoreNativeJob(revisionRoot, entry.name);
+      if (native) { candidates.push({ assemblyId: entry.name, current: { updatedAt: native.modifiedAt || native.createdAt } }); continue; }
       const current = await getCurrentRevision(revisionRoot, entry.name);
       if (current?.id) candidates.push({ assemblyId: entry.name, current });
     } catch {

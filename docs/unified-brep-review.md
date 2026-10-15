@@ -46,6 +46,34 @@ npm run check
 
 ## API
 
-`POST /api/review` 请求：`{ "assemblyId": "模型ID", "profile": "delivery", "revisionId": "审查版本ID", "runVisual": true, "screenshots": [{ "view": "3d", "dataUrl": "data:image/jpeg;base64,..." }], "refresh": false }`。`profile` 可选 `geometry` 或 `delivery`，默认 `delivery`。`runVisual: true` 需要交付范围和截图；不提供时仅组合已有视觉证据，不调用视觉模型。预览返回独立的 `reviewRevisionId`，绑定模型 ID 和特征计划摘要；它不是可编辑的参数修订。提供陈旧版本返回 409。`refresh` 强制重新组合报告，仍核对已有构建证据，不会触发重建。
+`POST /api/review` 请求：`{ "assemblyId": "模型ID", "profile": "delivery", "revisionId": "审查版本ID", "runVisual": true, "screenshots": [{ "view": "3d", "dataUrl": "data:image/jpeg;base64,..." }], "refresh": false }`。`profile` 可选 `geometry` 或 `delivery`，默认 `delivery`。`runVisual: true` 需要交付范围和截图；不提供时仅组合已有视觉证据，不调用视觉模型。新版 NVIDIA 预览会创建 `rev-0001` 可编辑草稿，`reviewRevisionId` 与该修订绑定。旧预览可能仍只有由计划摘要派生的审查标识，需要重新原生构建后进入可编辑通道。提供陈旧版本返回 409。`refresh` 强制重新组合报告，仍核对已有构建证据，不会触发重建。
 
 响应包含 `status`、`issues`、`review.geometryDecision`、`review.visualDecision`、`review.deliveryDecision`、检查策略与覆盖范围、`review.cache` 和 `reportUrl`。`GET /api/assembly/:id/validation` 同样核对绑定证据，保留原有修订和约束字段。
+
+## 原生审查后二次修改
+
+联合报告下方的“审查后二次修改 · NVIDIA 原生”可提取结构化 BRep/视觉建议，也可填写明确修改要求。先生成建议，查看目标零件、特征、参数和补丁，再应用并重新联合审查。修改始终调用 NVIDIA USD BRep，不会进入 CadQuery 或复用 STEP。
+
+1. 建议绑定当前修订及 `review.cache.evidenceHash`。几何和交付两种报告对相同证据使用同一个摘要。
+2. 自动建议只处理明确的参数或位姿；截图无法确定的尺寸、缺少干涉/运动验证等问题保留待验。明确补充要求可由原生补丁规划器生成建议。
+3. 应用时再次校验计划及实体内容、报告摘要、建议 ID 和补丁一致性。过期建议返回 409；自动补丁不允许删除/禁用特征或降低测量目标。
+4. NVIDIA 重建全部零件，逐件及整套 USD 导出回读，并复测已支持的尺寸。当前支持精确体积验收；未支持的必需尺寸检查继续阻断。
+5. 成功生成的新几何进入可编辑草稿，旧视觉结论清除。界面加载新网格并采集新截图复审。仍未通过验收的草稿也可继续修改，不会伪装成合格交付。
+
+同一模型的版本保存在 `revisions/rev-xxxx/`；`native-head.json` 指向当前编辑草稿，和通过验收的版本指针分开。原生构建失败保留候选失败记录，当前草稿不变。服务重启后校验文件摘要再恢复；可回到已有的完整原生草稿，回退也不会继承旧视觉通过。
+
+原生 5:1 行星实例的每次重建还会重新执行[运动干涉检查](native-motion-review.md)。运动报告及其文件摘要一起绑定新修订，运动碰撞、未支持的运动模型或不足的间隙证据均阻断统一验收。修改建议中的非法补丁最多经过三次规划校验修正，在真正重建前完成。
+
+`POST /api/review/improve` 生成建议：
+
+```json
+{"assemblyId":"模型ID","revisionId":"rev-0001","evidenceHash":"当前报告摘要","instructions":"只把太阳轮 sun 的 sun.base 齿宽 params.width 改为 12 mm"}
+```
+
+`instructions` 留空会从报告提取可执行建议；可用 `findingIds` 限制范围。没有可靠目标时返回 `proposal.status: "measurement_required"`。应用建议：
+
+```json
+{"assemblyId":"模型ID","revisionId":"rev-0001","apply":true,"proposalId":"生成建议的ID","editPatch":{"baseRevision":"rev-0001","operations":[]}}
+```
+
+这里的 `editPatch` 应填写上一步返回的完整补丁，不得更换内容。响应含 `assembly`、`revision.status: "draft"` 和 `visualReReviewRequired: true`；该结果表示修改已生成，不能解释为验收通过。API 调用方须加载新产物并向 `/api/review` 提交新截图，不能沿用修改前截图。

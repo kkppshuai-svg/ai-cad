@@ -21,7 +21,7 @@ export function attachUnifiedDecision(report, { engine = "cadquery", visualRevie
   const visual = currentVisual && visualReview.status === "pass" && (!visualReview.recommendedNextAction || visualReview.recommendedNextAction === "accept") ? "pass"
     : currentVisual ? "fail" : "pending";
   return { ...report, review: { protocol: REVIEW_POLICY.version, engine, policy: REVIEW_POLICY,
-    rollout: { phase: "parallel-validation", primaryEngine: "nvidia-usd-brep", parallelEngine: "cadquery", userAcceptance: "pending" },
+    rollout: { phase: engine === "nvidia-usd-brep" ? "native-only" : "parallel-validation", primaryEngine: "nvidia-usd-brep", parallelEngine: engine === "nvidia-usd-brep" ? null : "cadquery", userAcceptance: "pending" },
     coverage: { topology: engine === "nvidia-usd-brep" ? "SMLib manifold topology" : "OpenCascade exact BRepCheck with geometric controls",
       serialization: "volume, solid count, center and absolute bounds", dimensions: "required finite BRep measurements; unsupported checks block",
       surfaceDistance: "not a surface Hausdorff-distance proof", manufacturing: "heuristic engineering checks" },
