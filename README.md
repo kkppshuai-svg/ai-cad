@@ -1,27 +1,27 @@
 # AI-CAD
 
-**A local workbench for AI-assisted parametric CAD and geometry review.**
+**本地 AI 参数化建模与几何审查工作台。**
 
-[简体中文](README.zh-CN.md) · [Getting started](docs/getting-started.en.md) · [Documentation (中文)](docs/README.md)
+[English](README.en.md) · [安装与运行](docs/getting-started.md) · [文档中心](docs/README.md)
 
-Build and edit CAD models from text or reference images, inspect the result in 3D, and keep review evidence with each revision.
+通过文字或参考图创建和修改 CAD 模型，在三维视图中检查结果，并随修订保留审查证据。
 
-![AI-CAD planetary-reducer workbench example](docs/assets/examples/planetary-reducer.png)
+![AI-CAD 行星减速机工作台示例](docs/assets/examples/planetary-reducer.png)
 
-*Development screenshot. [More examples](docs/examples.md)*
+*研发过程截图。[更多示例](docs/examples.md)*
 
-## Features
+## 功能
 
-- Stable feature plans, local parameter edits, and revision history.
-- Native NVIDIA USD BRep for supported features; CadQuery/OpenCascade for broader parts and assemblies.
-- Combined BRep and visual review, artifact integrity checks, and validation gates.
-- Backend-specific precise USD or STEP exports, preview meshes, and optional FreeCAD integration.
+- 稳定特征计划、局部参数修改与版本历史。
+- NVIDIA USD BRep 原生建模；更广的零件与装配使用 CadQuery/OpenCascade。
+- BRep 与视觉联合审查、产物完整性检查及验证门禁。
+- 按后端导出精确 USD 或 STEP，提供预览网格及可选 FreeCAD 接入。
 
-**Stack:** Node.js · Three.js · Python · CadQuery/OpenCascade · NVIDIA USD BRep (optional).
+**技术栈：** Node.js · Three.js · Python · CadQuery/OpenCascade · NVIDIA USD BRep（可选）。
 
-## Quick start
+## 快速开始
 
-Node.js 20+ and Python with `venv`. Linux:
+需要 Node.js 20+、支持 `venv` 的 Python。Linux：
 
 ```bash
 git clone https://github.com/kkppshuai-svg/ai-cad.git
@@ -31,17 +31,17 @@ bash scripts/setup_cadquery_env.sh
 npm start
 ```
 
-Open `http://127.0.0.1:3101` and load the plate example. AI planning and visual review require a configured model provider. [Windows and backend setup](docs/getting-started.en.md)
+打开 `http://127.0.0.1:3101`，加载带孔板示例。[Windows 与后端配置](docs/getting-started.md)
 
-## Documentation
+## 文档
 
-- [Configuration (中文)](docs/configuration.md) · [HTTP API (中文)](docs/api.md)
-- [Unified review (中文)](docs/unified-brep-review.md) · [USD BRep adapter (中文)](docs/usd-brep.md)
-- [Development and tests (中文)](docs/development.md) · [Issues](https://github.com/kkppshuai-svg/ai-cad/issues)
+- [配置](docs/configuration.md) · [HTTP API](docs/api.md)
+- [统一审查](docs/unified-brep-review.md) · [USD BRep 接入](docs/usd-brep.md)
+- [开发与测试](docs/development.md) · [问题反馈](https://github.com/kkppshuai-svg/ai-cad/issues)
 
-## Related projects
+## 相关项目
 
-- [FormaLatent](https://github.com/kkppshuai-svg/formalatent): neural CAD descriptors and retrieval.
-- [USD BRep Review](https://github.com/kkppshuai-svg/usd-brep-review): standalone native BRep and visual review channel.
+- [FormaLatent · 形潜](https://github.com/kkppshuai-svg/formalatent)：CAD 神经表征与相似检索。
+- [USD BRep Review](https://github.com/kkppshuai-svg/usd-brep-review)：独立原生 BRep 与视觉审查通道。
 
-Engineering prototype. Review results do not replace qualification for real loads or manufacturing; see [validation scope](docs/validation-and-repair.md).
+项目处于工程研发阶段，审查结果不能替代实际载荷或制造验证。参见[验证范围](docs/validation-and-repair.md)。
