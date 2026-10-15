@@ -25,5 +25,6 @@ run(python, ['-m', 'pytest', 'scripts/test_train_cad_vae.py', 'scripts/test_quer
 run(cadqueryPython, ['-m', 'unittest', 'discover', '-s', 'scripts', '-p', 'test_*.py'], { PYTHONPATH: path.join(root, 'scripts') });
 if (process.env.USD_BREP_PYTHON) {
   run(process.env.USD_BREP_PYTHON, ['-m', 'unittest', 'discover', '-s', 'scripts', '-p', 'test_usd_brep_build.py']);
+  run(process.env.USD_BREP_PYTHON, ['-m', 'unittest', 'discover', '-s', 'scripts', '-p', 'test_native_gears.py']);
 }
 run(process.execPath, ['--test', ...files('.', /\.test\.mjs$/)]);

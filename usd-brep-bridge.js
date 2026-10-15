@@ -10,6 +10,19 @@ export function createUsdBrepBridge({ python, rootDir, runProcess }) {
   if (python && /[\0\r\n]/.test(python)) throw new Error("USD_BREP_PYTHON contains control characters");
   const script = path.join(rootDir, "scripts", "usd_brep_export.py");
   return {
+    async buildAssembly({ plan, outputDir }) {
+      if (!python) throw Object.assign(new Error("USD_BREP_PYTHON is not configured"), { status: 503 });
+      try {
+        const result = await runProcess(python, [path.join(rootDir, "scripts", "usd_brep_assembly.py")], {
+          input: JSON.stringify({ plan, outputDir }), timeoutMs: 600000, maxBuffer: 2000000
+        });
+        return { ...JSON.parse(result.stdout), runtimeWarnings: Boolean(result.stderr.trim()) };
+      } catch (error) {
+        const match = error.message.match(/\{"error":.*"code": "USD_BREP_UNSUPPORTED_OR_INVALID"\}/);
+        if (match) throw Object.assign(new Error(JSON.parse(match[0]).error), { status: 422, code: "USD_BREP_UNSUPPORTED_OR_INVALID" });
+        throw error;
+      }
+    },
     async buildBrep({ part, outputDir }) {
       if (!python) throw Object.assign(new Error("USD_BREP_PYTHON is not configured"), { status: 503 });
       try {

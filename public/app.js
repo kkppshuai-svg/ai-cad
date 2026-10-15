@@ -109,6 +109,7 @@ const els = {
   usdExportBtn: document.querySelector("#usdExportBtn"),
   usdLink: document.querySelector("#usdLink"),
   usdDemoBtn: document.querySelector("#usdDemoBtn"),
+  usdPlanetaryBtn: document.querySelector("#usdPlanetaryBtn"),
   geometryEngine: document.querySelector("#geometryEngine"),
   nativeScope: document.querySelector("#nativeScope"),
   usdBrepLink: document.querySelector("#usdBrepLink"),
@@ -189,6 +190,7 @@ async function init() {
     state.usdBrepAvailable = Boolean(status.usdBrep?.available);
     els.usdExportBtn.hidden = !state.usdBrepAvailable;
     els.usdDemoBtn.hidden = !state.usdBrepAvailable;
+    els.usdPlanetaryBtn.hidden = !state.usdBrepAvailable;
     els.compareKernelsBtn.hidden = !state.usdBrepAvailable;
     state.previewEngine = state.usdBrepAvailable && localStorage.getItem("ai-cad-modeling-engine") !== "cadquery" ? "usd-brep" : "cadquery";
     els.geometryEngine.value = state.previewEngine;
@@ -289,6 +291,18 @@ function wireEvents() {
     } finally {
       setBusy(els.usdDemoBtn, false);
     }
+  });
+  els.usdPlanetaryBtn.addEventListener("click", async () => {
+    setBusy(els.usdPlanetaryBtn, true);
+    try {
+      const plan = await api("/usd-planetary-5to1.json");
+      state.previewEngine = "usd-brep";
+      els.geometryEngine.value = "usd-brep";
+      els.code.value = JSON.stringify(plan, null, 2);
+      localStorage.setItem("ai-cad-code", els.code.value);
+      await previewCadQuery({ force: true });
+    } catch (error) { setError(error); }
+    finally { setBusy(els.usdPlanetaryBtn, false); }
   });
   window.addEventListener("resize", () => cadViewer?.resize());
   els.viewAssemblyBtn.addEventListener("click", showAssemblyStl);
@@ -521,8 +535,8 @@ async function sendNativeChat(message, images) {
       message: message || "根据参考图片建模", images, conversationId: state.conversationId, part: state.nativePart
     } });
     pushMessage("assistant", result.reply);
-    state.nativePart = result.preview.part;
-    els.code.value = JSON.stringify(result.preview.part, null, 2);
+    state.nativePart = result.preview.plan || result.preview.part;
+    els.code.value = JSON.stringify(state.nativePart, null, 2);
     localStorage.setItem("ai-cad-code", els.code.value);
     await showPartPreview(result.preview);
     if (result.preview.status === "done") updateProcessTrace("deliver", "完成", "NVIDIA 原生实体已通过统一几何审查；完整交付另需视觉检查");
@@ -2051,7 +2065,7 @@ async function previewCadQuery({ force = false, download = false } = {}) {
 async function showPartPreview(preview, { download = false } = {}) {
     state.currentJobId = preview.id;
     els.jobId.textContent = preview.id;
-    els.renderState.textContent = "预览完成";
+    els.renderState.textContent = preview.status === "validation_failed" ? "预览已生成，审查尚未通过" : "预览完成";
     els.log.classList.remove("error");
     els.log.textContent = JSON.stringify({
       id: preview.id,
@@ -2074,7 +2088,7 @@ async function showPartPreview(preview, { download = false } = {}) {
     setDownload(els.usdBrepLink, preview.usdBrepUrl);
     setDownload(els.kernelCodeLink, preview.codeUrl);
     els.modelKernel.textContent = preview.usdBrepUrl ? "本次模型：NVIDIA USD BRep / SMLib" : "本次模型：CadQuery / OpenCascade";
-    if (preview.usdBrepUrl) state.nativePart = preview.part;
+    if (preview.usdBrepUrl) state.nativePart = preview.plan || preview.part;
     state.usdExportTarget = preview;
     els.unifiedReviewBtn.disabled = !preview.id;
     if (preview.unifiedReview) renderUnifiedReview(preview.unifiedReview);

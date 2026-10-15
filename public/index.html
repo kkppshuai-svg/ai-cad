@@ -122,13 +122,14 @@
             <option value="usd-brep">主通道 · NVIDIA USD BRep / SMLib</option>
             <option value="cadquery">并行验证 · CadQuery / OpenCascade</option>
           </select>
-          <small id="nativeScope" hidden>USD BRep 为主通道，CadQuery 保留并行验证。当前处于并线待验阶段；原生已接入基础实体、合并、打孔、方槽。</small>
+          <small id="nativeScope" hidden>USD BRep 为主通道。原生支持基础实体和实验性渐开线齿轮装配；5:1 示例可生成真实内齿圈。装配干涉、运动和视觉审查结果分别显示。</small>
           <label for="comparisonConstraint">对比用刚体约束</label>
           <select id="comparisonConstraint"><option value="free">未约束</option><option value="fixed">固定到世界</option></select>
           <div class="actions inline-actions">
             <button id="renderBtn">刷新 3D 预览</button>
             <button id="exportBtn">导出当前预览</button>
             <button id="usdDemoBtn" type="button" hidden>加载带孔板示例</button>
+            <button id="usdPlanetaryBtn" type="button" hidden>原生行星减速机 5:1</button>
             <button id="compareKernelsBtn" type="button" hidden>双内核实测对比</button>
           </div>
           <textarea id="code" spellcheck="false"></textarea>

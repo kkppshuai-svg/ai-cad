@@ -14,7 +14,9 @@
 
 展示太阳轮、行星轮、内齿圈、行星架和外壳等多零件装配。正式验收还应检查齿数关系、目标传动比、同轴度、相位、啮合间隙、干涉和运动约束。
 
-当前可直接复现的 5:1 参数计划见 [`examples/planetary-reducer-5to1.json`](../examples/planetary-reducer-5to1.json)：20T 太阳轮、30T 行星轮、80T 内齿圈，采用“内齿圈固定、太阳轮输入、行星架输出”的运动假设。CadQuery 负责精确齿形 BRep，随后通过 NVIDIA USD BRep 的网格桥接导出 USD 并完成往返校验；这条 USD 文件是预览网格，不冒充原生 NURBS BRep。
+首个 [NVIDIA 原生 5:1 装配实例](native-planetary.md)使用 24T 太阳轮、36T×3 行星轮、96T 真实内齿圈和行星架，由 SMLib 构建并导出精确 USD BRep。齿面是渐开线的采样近似；输出实体与原始解析渐开线并非完全重合。
+
+旧版 [`examples/planetary-reducer-5to1.json`](../examples/planetary-reducer-5to1.json)只作历史概念预览：外齿为梯形近似，内齿圈实际是圆环，20/30/80 齿不满足三个行星轮均布装配条件。它不构成已经验证的减速机。
 
 ## 谐波减速机
 

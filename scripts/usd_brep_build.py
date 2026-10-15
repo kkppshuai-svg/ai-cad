@@ -15,7 +15,7 @@ from usd_brep_export import stage_units
 from brep_review_core import compare_geometry
 
 
-SUPPORTED = {"base_box", "base_cylinder", "base_sphere", "hole", "cut_box", "add_primitive", "dimension"}
+SUPPORTED = {"base_box", "base_cylinder", "base_sphere", "base_spur_gear", "hole", "cut_box", "add_primitive", "dimension"}
 
 
 def number(value, positive=False):
@@ -60,6 +60,11 @@ def primitive(spec):
         radius = number(spec.get("radius", number(spec.get("diameter", 10)) / 2), positive=True)
         height = number(spec.get("height", 10), positive=True)
         solid = b.create_cylinder((0, 0, -height / 2 if centered else 0), radius, height)
+    elif kind == "spur_gear":
+        from native_gears import gear
+        solid, _ = gear(spec)
+        if not centered:
+            b.translate(solid, (0, 0, float(spec['width'])/2))
     elif kind == "sphere":
         solid = b.create_sphere((0, 0, 0), number(spec.get("radius", 5), positive=True))
     else:
@@ -115,7 +120,7 @@ def build_solid(part):
         if kind.startswith("base_"):
             item = primitive({**params, "type": kind[5:]})
             solid = item if solid is None else b.boolean_union(solid, item)
-            operation = f"usd_brep.create_{kind[5:]}"
+            operation = "usd_brep.linear_sweep" if kind == "base_spur_gear" else f"usd_brep.create_{kind[5:]}"
         else:
             if solid is None:
                 raise ValueError("Create base geometry before applying a feature")
@@ -211,6 +216,8 @@ def build(part, output_dir):
     report["facts"] = original_facts
     report["usdRoundTrip"] = roundtrip
     report["bboxMethod"] = "conservative vertex/edge/face union; may include tolerance padding"
+    if any(node.get('type') == 'base_spur_gear' for node in part.get('featureTree', [])):
+        report['gearProfile'] = 'sampled involute; radial root transitions; motion and strength unverified'
     (output / "native-build-report.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
     return report
 

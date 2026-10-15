@@ -9,8 +9,16 @@ test("unconfigured and broken USD environments remain optional", async () => {
   const disabled = createUsdBrepBridge({ rootDir: ".", runProcess: () => assert.fail() });
   assert.equal((await disabled.status()).available, false);
   await assert.rejects(disabled.exportMesh({}), { status: 503 });
+  await assert.rejects(disabled.buildAssembly({}), { status: 503 });
   const broken = createUsdBrepBridge({ python: "missing", rootDir: ".", runProcess: async () => { throw Error("missing"); } });
   assert.equal((await broken.status()).available, false);
+});
+
+test("native assembly rejection stays explicit and does not fall back", async () => {
+  const bridge = createUsdBrepBridge({ python: "native-python", rootDir: ".", runProcess: async () => {
+    throw new Error('{"error": "Unsupported native assembly", "code": "USD_BREP_UNSUPPORTED_OR_INVALID"}');
+  } });
+  await assert.rejects(bridge.buildAssembly({ plan: { parts: [] }, outputDir: "." }), { status: 422, code: "USD_BREP_UNSUPPORTED_OR_INVALID" });
 });
 
 test("export only accepts server-owned STL paths and passes spaced interpreter paths as one argument", async t => {

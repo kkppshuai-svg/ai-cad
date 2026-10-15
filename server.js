@@ -332,12 +332,47 @@ async function handleLatentRetrain(req, res, url) {
 async function handlePreview(req, res, url) {
   const body = await readJson(req);
   if (body.engine === "usd-brep") {
-    return json(res, 200, await buildNativeUsdPreview(body.part || body.code));
+    const input = body.plan || body.part || body.code;
+    const parsed = typeof input === "string" ? JSON.parse(input) : input;
+    return json(res, 200, await (Array.isArray(parsed?.parts) ? buildNativeUsdAssemblyPreview(parsed) : buildNativeUsdPreview(parsed)));
   }
   if (body.engine && body.engine !== "cadquery") return json(res, 400, { error: "Unknown modeling engine" });
   const part = parseFeaturePart(body.part || body.code);
   const preview = await buildCadQueryPreview(part);
   return json(res, 200, preview);
+}
+
+async function buildNativeUsdAssemblyPreview(input) {
+  const plan = normalizeParametricPlan(input);
+  const id = `${Date.now()}-native-assembly-${randomUUID().slice(0, 8)}`;
+  const outputDir = path.join(assemblyDir, id);
+  await mkdir(outputDir, { recursive: true });
+  const report = await usdBrep.buildAssembly({ plan, outputDir });
+  const parts = plan.parts.map(part => ({ ...part, localUsdBrepPath: path.join(outputDir, `${part.id}.usda`) }));
+  const job = { id, outputDir, engine: "nvidia-usd-brep", status: "validation_failed", plan, parts,
+    stlPath: path.join(outputDir, "native-preview.stl"), usdBrepPath: path.join(outputDir, "native-solid.usda") };
+  job.constraintReport = analyzeAssemblyConstraints(plan);
+  // Geometry validity and serialization cannot stand in for an assembly interference check.
+  const geometryParts = report.parts.map((part, index) => ({ ...part, issues: [...(part.issues || []), ...(index === 0 ? [
+    { code: "NATIVE_ASSEMBLY_INTERFERENCE_UNVERIFIED", severity: "error", message: "原生装配已生成；静态干涉和运动啮合尚未完成验证" }
+  ] : [])] }));
+  job.validationReport = composeAssemblyValidationReport({ plan, constraintReport: job.constraintReport, assemblyId: id,
+    buildSummary: { engine: job.engine, parts, usdBrepPath: job.usdBrepPath,
+      geometryValidation: { parts: geometryParts, interferences: [], usdRoundTrip: report.usdRoundTrip } } });
+  await unifiedReview.bind(job);
+  job.latestUnifiedReview = await unifiedReview.review(job);
+  if (job.latestUnifiedReview.status === "pass") job.status = "done";
+  assemblyJobs.set(id, job);
+  await writeFile(path.join(outputDir, "unified-review.json"), JSON.stringify(job.latestUnifiedReview, null, 2), "utf8");
+  for (const script of ["usd_brep_assembly.py", "usd_brep_build.py", "usd_brep_export.py", "native_gears.py", "brep_review_core.py"]) {
+    await copyFile(path.join(__dirname, "scripts", script), path.join(outputDir, script));
+  }
+  return { id, status: job.status, reviewRevisionId: reviewRevisionId(job), engine: job.engine,
+    part: { id: "native_assembly", name: plan.name }, plan, nativeReport: report, unifiedReview: job.latestUnifiedReview,
+    stlUrl: artifactUrl(job, job.stlPath), usdBrepUrl: artifactUrl(job, job.usdBrepPath),
+    usdMeshUrl: artifactUrl(job, path.join(outputDir, "native-mesh.usda")),
+    codeUrl: artifactUrl(job, path.join(outputDir, "usd_brep_assembly.py")),
+    reportUrl: artifactUrl(job, path.join(outputDir, "native-build-report.json")) };
 }
 
 async function buildNativeUsdPreview(input) {
@@ -388,6 +423,7 @@ async function buildNativeUsdPreview(input) {
   await copyFile(path.join(__dirname, "scripts", "usd_brep_build.py"), path.join(outputDir, "usd_brep_build.py"));
   await copyFile(path.join(__dirname, "scripts", "usd_brep_export.py"), path.join(outputDir, "usd_brep_export.py"));
   await copyFile(path.join(__dirname, "scripts", "brep_review_core.py"), path.join(outputDir, "brep_review_core.py"));
+  await copyFile(path.join(__dirname, "scripts", "native_gears.py"), path.join(outputDir, "native_gears.py"));
   return { id, status: job.status, reviewRevisionId: reviewRevisionId(job), engine: "nvidia-usd-brep", part, nativeReport: report, unifiedReview: nativeAudit,
     stlUrl: artifactUrl(job, job.stlPath), usdBrepUrl: artifactUrl(job, path.join(outputDir, "native-solid.usda")),
     usdMeshUrl: artifactUrl(job, path.join(outputDir, "native-mesh.usda")),
@@ -445,11 +481,13 @@ async function handleNativeUsdGenerate(req, res) {
   const conversationId = sanitizeText(body.conversationId || randomUUID(), 120);
   const images = await persistChatImages(conversationId, body.images);
   const prompt = [
-    'Plan one mechanical part for NVIDIA USD BRep/SMLib. Return JSON only: {"reply":"...","part":{...}}.',
+    'Plan mechanical geometry for NVIDIA USD BRep/SMLib. Return JSON only: {"reply":"...","part":{...}} for a part, or {"reply":"...","plan":{"name":"...","parts":[...]}} for an explicitly requested assembly.',
     'Lengths are mm, rotations degrees. Part has id, name, primitives, features.',
     'Supported primitives: box {size:[x,y,z],center:true}, cylinder {radius,height,center:true}, sphere {radius}. Primitive pose is {translate:[x,y,z],rotate:[rx,ry,rz]}.',
     'Supported features: hole {diameter,depth,axis:"z",center:[x,y,z]}, cut_box {size,center,rotate}, add {primitive}. Hole cutters extend depth in both directions.',
-    'Gears, assemblies, STEP import, slots, fillets, patterns and extrusions are not implemented in this adapter. For unsupported requests return {"error":"explanation"}; never simplify or use CadQuery.',
+    'Experimental gears use featureTree base_spur_gear with params module, teeth (integer 18..160), width, boreDiameter, optional internal:true and outsideRadius for ring gears. Pressure angle is fixed at 20 degrees; involute flanks are sampled with radial root transitions. Mechanical bodies stay separate in plan.parts, maximum 12 parts. Pose is applied once at part level. Slots, fillets, patterns, general extrusions and STEP import are not supported. For unsupported requests return {"error":"explanation"}; never simplify or use CadQuery.',
+    'For a 5:1 planetary use the native reference below: 24/36/96 teeth and three planets. Ring fixed, sun input, carrier output. Preserve the prototype field only if its required six IDs are retained. Do not claim verified motion or assembly interference. Dimensions are assumptions unless user-specified.',
+    `Native planetary reference: ${JSON.stringify(JSON.parse(await readFile(path.join(publicDir, "usd-planetary-5to1.json"), "utf8")))}`,
     'Preserve the previous part for parameter modifications; create a new part for a new design.',
     `Previous part: ${JSON.stringify(body.part || null)}`, `Request: ${message}`
   ].join("\n");
@@ -457,6 +495,7 @@ async function handleNativeUsdGenerate(req, res) {
     prompt, images, timeoutMs: codexPlannerTimeoutMs, maxBuffer: 200000, fallbackWarning: "Native planner transport fallback" });
   const candidate = extractJsonObject(generated.text);
   if (candidate.error) return json(res, 422, { error: sanitizeText(candidate.error, 1000) });
+  if (candidate.plan) return json(res, 200, { preview: await buildNativeUsdAssemblyPreview(candidate.plan), reply: sanitizeText(candidate.reply || "NVIDIA 原生装配已生成，审查状态请查看统一通道。", 1000) });
   if (!candidate.part) return json(res, 422, { error: "Native planner did not return a supported part" });
   return json(res, 200, { preview: await buildNativeUsdPreview(candidate.part), reply: sanitizeText(candidate.reply || "NVIDIA USD BRep 已完成实体建模。", 1000) });
 }

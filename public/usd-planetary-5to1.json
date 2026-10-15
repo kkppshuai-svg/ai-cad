@@ -1,0 +1,50 @@
+{
+  "name": "NVIDIA 原生 BRep · 5:1 行星减速机",
+  "prototype": "planetary-5to1-native-v1",
+  "kinematics": {
+    "sunTeeth": 24, "planetTeeth": 36, "ringTeeth": 96,
+    "planetCount": 3, "moduleMm": 2, "ratio": 5,
+    "assumption": "内齿圈固定，太阳轮输入，行星架输出",
+    "assemblyCondition": "(24 + 96) / 3 = 40",
+    "planetCenterRadiusMm": 60,
+    "backlashAllocationPerGearMm": 0.12
+  },
+  "parts": [
+    {
+      "id": "sun", "name": "太阳轮 24T", "role": "input", "requireSingleSolid": true,
+      "featureTree": [{"id":"sun.base","type":"base_spur_gear","params":{"module":2,"teeth":24,"width":10,"boreDiameter":10}}],
+      "pose": {"translate":[0,0,0],"rotate":[0,0,0]}
+    },
+    {
+      "id": "planet_1", "name": "行星轮 36T · 1", "role": "planet", "requireSingleSolid": true,
+      "featureTree": [{"id":"planet_1.base","type":"base_spur_gear","params":{"module":2,"teeth":36,"width":10,"boreDiameter":8.4}}],
+      "pose": {"translate":[60,0,0],"rotate":[0,0,5]}
+    },
+    {
+      "id": "planet_2", "name": "行星轮 36T · 2", "role": "planet", "requireSingleSolid": true,
+      "featureTree": [{"id":"planet_2.base","type":"base_spur_gear","params":{"module":2,"teeth":36,"width":10,"boreDiameter":8.4}}],
+      "pose": {"translate":[-30,51.96152422706632,0],"rotate":[0,0,5]}
+    },
+    {
+      "id": "planet_3", "name": "行星轮 36T · 3", "role": "planet", "requireSingleSolid": true,
+      "featureTree": [{"id":"planet_3.base","type":"base_spur_gear","params":{"module":2,"teeth":36,"width":10,"boreDiameter":8.4}}],
+      "pose": {"translate":[-30,-51.96152422706632,0],"rotate":[0,0,5]}
+    },
+    {
+      "id": "ring", "name": "真实内齿圈 96T", "role": "ground", "requireSingleSolid": true,
+      "featureTree": [{"id":"ring.base","type":"base_spur_gear","params":{"module":2,"teeth":96,"width":10,"internal":true,"outsideRadius":104}}],
+      "pose": {"translate":[0,0,0],"rotate":[0,0,1.875]}
+    },
+    {
+      "id": "carrier", "name": "输出行星架及三销", "role": "output", "requireSingleSolid": true,
+      "featureTree": [
+        {"id":"carrier.base","type":"base_cylinder","params":{"radius":68,"height":6}},
+        {"id":"carrier.bore","type":"hole","dependsOn":["carrier.base"],"params":{"diameter":12,"depth":20}},
+        {"id":"carrier.pin1","type":"add_primitive","dependsOn":["carrier.bore"],"params":{"primitive":{"type":"cylinder","radius":3.8,"height":12,"pose":{"translate":[60,0,6]}}}},
+        {"id":"carrier.pin2","type":"add_primitive","dependsOn":["carrier.pin1"],"params":{"primitive":{"type":"cylinder","radius":3.8,"height":12,"pose":{"translate":[-30,51.96152422706632,6]}}}},
+        {"id":"carrier.pin3","type":"add_primitive","dependsOn":["carrier.pin2"],"params":{"primitive":{"type":"cylinder","radius":3.8,"height":12,"pose":{"translate":[-30,-51.96152422706632,6]}}}}
+      ],
+      "pose": {"translate":[0,0,-9],"rotate":[0,0,0]}
+    }
+  ]
+}
