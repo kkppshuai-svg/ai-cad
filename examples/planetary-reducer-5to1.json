@@ -1,0 +1,358 @@
+{
+    "name":  "5:1 行星减速机",
+    "engine":  "cadquery",
+    "outputDir":  "C:\\Users\\22491\\Documents\\ChatGPT\\建模测试\\ai-cad\\assemblies\\planetary-reducer-5to1",
+    "kinematics":  {
+                       "assumption":  "内齿圈固定，太阳轮输入，行星架输出",
+                       "ratio":  5,
+                       "formula":  "1 + ringTeeth / sunTeeth = 1 + 80 / 20 = 5"
+                   },
+    "parts":  [
+                  {
+                      "id":  "sun-gear",
+                      "name":  "太阳轮 20T",
+                      "role":  "input",
+                      "primitives":  [
+                                         {
+                                             "type":  "spur_gear",
+                                             "module":  2,
+                                             "teeth":  20,
+                                             "width":  10,
+                                             "boreDiameter":  10,
+                                             "center":  true
+                                         }
+                                     ],
+                      "pose":  {
+                                   "translate":  [
+                                                     0,
+                                                     0,
+                                                     0
+                                                 ],
+                                   "rotate":  [
+                                                  0,
+                                                  0,
+                                                  0
+                                              ]
+                               }
+                  },
+                  {
+                      "id":  "planet-1",
+                      "name":  "行星轮 1 30T",
+                      "role":  "planet",
+                      "primitives":  [
+                                         {
+                                             "type":  "spur_gear",
+                                             "module":  2,
+                                             "teeth":  30,
+                                             "width":  10,
+                                             "boreDiameter":  8,
+                                             "center":  true
+                                         }
+                                     ],
+                      "pose":  {
+                                   "translate":  [
+                                                     50,
+                                                     0,
+                                                     0
+                                                 ],
+                                   "rotate":  [
+                                                  0,
+                                                  0,
+                                                  0
+                                              ]
+                               }
+                  },
+                  {
+                      "id":  "planet-2",
+                      "name":  "行星轮 2 30T",
+                      "role":  "planet",
+                      "primitives":  [
+                                         {
+                                             "type":  "spur_gear",
+                                             "module":  2,
+                                             "teeth":  30,
+                                             "width":  10,
+                                             "boreDiameter":  8,
+                                             "center":  true
+                                         }
+                                     ],
+                      "pose":  {
+                                   "translate":  [
+                                                     -25,
+                                                     43.3013,
+                                                     0
+                                                 ],
+                                   "rotate":  [
+                                                  0,
+                                                  0,
+                                                  0
+                                              ]
+                               }
+                  },
+                  {
+                      "id":  "planet-3",
+                      "name":  "行星轮 3 30T",
+                      "role":  "planet",
+                      "primitives":  [
+                                         {
+                                             "type":  "spur_gear",
+                                             "module":  2,
+                                             "teeth":  30,
+                                             "width":  10,
+                                             "boreDiameter":  8,
+                                             "center":  true
+                                         }
+                                     ],
+                      "pose":  {
+                                   "translate":  [
+                                                     -25,
+                                                     -43.3013,
+                                                     0
+                                                 ],
+                                   "rotate":  [
+                                                  0,
+                                                  0,
+                                                  0
+                                              ]
+                               }
+                  },
+                  {
+                      "id":  "ring-gear",
+                      "name":  "内齿圈 80T（包络预览）",
+                      "role":  "ground",
+                      "primitives":  [
+                                         {
+                                             "type":  "cylinder",
+                                             "radius":  88,
+                                             "height":  10,
+                                             "center":  true
+                                         }
+                                     ],
+                      "features":  [
+                                       {
+                                           "type":  "hole",
+                                           "diameter":  150,
+                                           "depth":  30,
+                                           "axis":  "z",
+                                           "center":  [
+                                                          0,
+                                                          0,
+                                                          0
+                                                      ]
+                                       }
+                                   ],
+                      "pose":  {
+                                   "translate":  [
+                                                     0,
+                                                     0,
+                                                     0
+                                                 ],
+                                   "rotate":  [
+                                                  0,
+                                                  0,
+                                                  0
+                                              ]
+                               }
+                  },
+                  {
+                      "id":  "carrier",
+                      "name":  "行星架",
+                      "role":  "output",
+                      "primitives":  [
+                                         {
+                                             "type":  "cylinder",
+                                             "radius":  64,
+                                             "height":  8,
+                                             "center":  true
+                                         }
+                                     ],
+                      "features":  [
+                                       {
+                                           "type":  "hole",
+                                           "diameter":  12,
+                                           "depth":  30,
+                                           "axis":  "z",
+                                           "center":  [
+                                                          0,
+                                                          0,
+                                                          0
+                                                      ]
+                                       },
+                                       {
+                                           "type":  "hole",
+                                           "diameter":  16,
+                                           "depth":  30,
+                                           "axis":  "z",
+                                           "center":  [
+                                                          50,
+                                                          0,
+                                                          0
+                                                      ]
+                                       },
+                                       {
+                                           "type":  "hole",
+                                           "diameter":  16,
+                                           "depth":  30,
+                                           "axis":  "z",
+                                           "center":  [
+                                                          -25,
+                                                          43.3013,
+                                                          0
+                                                      ]
+                                       },
+                                       {
+                                           "type":  "hole",
+                                           "diameter":  16,
+                                           "depth":  30,
+                                           "axis":  "z",
+                                           "center":  [
+                                                          -25,
+                                                          -43.3013,
+                                                          0
+                                                      ]
+                                       }
+                                   ],
+                      "pose":  {
+                                   "translate":  [
+                                                     0,
+                                                     0,
+                                                     -10
+                                                 ],
+                                   "rotate":  [
+                                                  0,
+                                                  0,
+                                                  0
+                                              ]
+                               }
+                  }
+              ],
+    "relations":  [
+                      {
+                          "type":  "gear",
+                          "from":  {
+                                       "partId":  "sun-gear",
+                                       "featureId":  "primitive-1"
+                                   },
+                          "to":  {
+                                     "partId":  "planet-1",
+                                     "featureId":  "primitive-1"
+                                 },
+                          "ratio":  1.5
+                      },
+                      {
+                          "type":  "gear",
+                          "from":  {
+                                       "partId":  "sun-gear",
+                                       "featureId":  "primitive-1"
+                                   },
+                          "to":  {
+                                     "partId":  "planet-2",
+                                     "featureId":  "primitive-1"
+                                 },
+                          "ratio":  1.5
+                      },
+                      {
+                          "type":  "gear",
+                          "from":  {
+                                       "partId":  "sun-gear",
+                                       "featureId":  "primitive-1"
+                                   },
+                          "to":  {
+                                     "partId":  "planet-3",
+                                     "featureId":  "primitive-1"
+                                 },
+                          "ratio":  1.5
+                      },
+                      {
+                          "type":  "gear",
+                          "from":  {
+                                       "partId":  "ring-gear",
+                                       "featureId":  "primitive-1"
+                                   },
+                          "to":  {
+                                     "partId":  "planet-1",
+                                     "featureId":  "primitive-1"
+                                 },
+                          "ratio":  2.6666666667
+                      },
+                      {
+                          "type":  "gear",
+                          "from":  {
+                                       "partId":  "ring-gear",
+                                       "featureId":  "primitive-1"
+                                   },
+                          "to":  {
+                                     "partId":  "planet-2",
+                                     "featureId":  "primitive-1"
+                                 },
+                          "ratio":  2.6666666667
+                      },
+                      {
+                          "type":  "gear",
+                          "from":  {
+                                       "partId":  "ring-gear",
+                                       "featureId":  "primitive-1"
+                                   },
+                          "to":  {
+                                     "partId":  "planet-3",
+                                     "featureId":  "primitive-1"
+                                 },
+                          "ratio":  2.6666666667
+                      }
+                  ],
+    "joints":  [
+                   {
+                       "type":  "fixed",
+                       "from":  {
+                                    "partId":  "world"
+                                },
+                       "to":  {
+                                  "partId":  "ring-gear"
+                              }
+                   },
+                   {
+                       "type":  "revolute",
+                       "from":  {
+                                    "partId":  "world"
+                                },
+                       "to":  {
+                                  "partId":  "sun-gear"
+                              },
+                       "axis":  [
+                                    0,
+                                    0,
+                                    1
+                                ]
+                   },
+                   {
+                       "type":  "revolute",
+                       "from":  {
+                                    "partId":  "world"
+                                },
+                       "to":  {
+                                  "partId":  "carrier"
+                              },
+                       "axis":  [
+                                    0,
+                                    0,
+                                    1
+                                ]
+                   }
+               ],
+    "acceptanceChecks":  [
+                             {
+                                 "name":  "目标传动比",
+                                 "expected":  5,
+                                 "tolerance":  0
+                             },
+                             {
+                                 "name":  "齿数关系",
+                                 "expression":  "ringTeeth = sunTeeth + 2 * planetTeeth"
+                             },
+                             {
+                                 "name":  "行星中心距",
+                                 "expectedMm":  50,
+                                 "toleranceMm":  0.01
+                             }
+                         ]
+}
