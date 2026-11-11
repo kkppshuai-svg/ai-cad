@@ -69,6 +69,29 @@ test("marks automatic training-loop passes without pretending they are human exc
   assert.ok(!sample.tokens.includes("quality:excellent"));
 });
 
+test("structure graph keeps enabled native dependencies and object-form assembly endpoints", () => {
+  const { structureGraph } = buildCadLatentSample({ plan: {
+    parts: [
+      { id: "base", featureTree: [
+        { id: "stock", type: "base_box" },
+        { id: "hole", type: "hole", dependsOn: ["stock"] },
+        { id: "disabled", type: "fillet", enabled: false, dependsOn: ["hole"] },
+      ], primitives: [{ type: "box" }], features: [{ type: "hole" }] },
+      { id: "arm", primitives: [{ type: "cylinder" }] },
+    ],
+    relations: [{ type: "mate", from: { partId: "base", featureId: "hole" }, to: { partId: "arm" } }],
+    joints: [{ type: "revolute", from: { partId: "world" }, to: { partId: "arm" } }],
+  } });
+  assert.equal(structureGraph.nodes.filter((node) => node.type === "box").length, 1);
+  assert.equal(structureGraph.nodes.filter((node) => node.type === "hole").length, 1);
+  assert.ok(!structureGraph.nodes.some((node) => node.type === "fillet"));
+  assert.deepEqual(structureGraph.edges.filter((edge) => edge.kind !== "contains"), [
+    { kind: "depends_on", from: "part:0:feature:1", to: "part:0:primitive:0" },
+    { kind: "relation", type: "mate", from: "part:0", to: "part:1" },
+    { kind: "joint", type: "revolute", from: "world", to: "part:1" },
+  ]);
+});
+
 test("ranks CAD latent samples by request similarity and quality", () => {
   const samples = [
     buildCadLatentSample({

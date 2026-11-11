@@ -1,3 +1,5 @@
+import { buildCadStructureGraph } from "./cad-structure-graph.js";
+
 const ZH_KEYWORDS = [
   "轴承", "连杆", "支架", "外壳", "孔", "槽", "圆角", "倒角", "舵机", "电机",
   "螺丝", "螺钉", "螺母", "安装", "盒子", "滑块", "导轨", "齿轮", "轮胎", "关节",
@@ -42,6 +44,7 @@ export function buildCadLatentSample({ rating = {}, plan = {}, assembly = {} } =
     comment: rating.comment || "",
     geometryPolicy: { ...GEOMETRY_POLICY },
     structure,
+    structureGraph: buildCadStructureGraph(plan),
     quality,
     tokens,
     latent: {

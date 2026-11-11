@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
 import { copyFile, mkdir, readFile, rename, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { buildCadStructureGraph } from "./cad-structure-graph.js";
 
 const STRUCTURE_DATASET = "training_samples.jsonl";
 const BREP_DATASET = "brep_training_samples.jsonl";
@@ -239,6 +240,7 @@ export function buildTrainingSample({ job, source, id, geometry }) {
     geometryPolicy: { learnedRepresentation: "CAD structure JSON + BREP descriptors", learnsGeometryFiles: false, usesStepStlFcstdAsEvidenceOnly: true },
     structure: { name: plan.name || "", partCount: parts.length, relationCount: (plan.relations || []).length, jointCount: (plan.joints || []).length, primitiveTypes, featureTypes, partRoles: parts.map((part) => part.role || part.name || part.id).filter(Boolean).slice(0, 12), jointTypes: (plan.joints || []).map((joint) => joint.type || "fixed").slice(0, 12) },
     quality: { score: 100, retainedForLearning: true, trainingVerified: true, cadqueryBuilt: true, freecadVisible: visiblePartObjectCount > 0, visiblePartObjectCount, failedConstraintCount: Number(job.freeCadBridgeReport?.failedConstraints?.length || 0), status: job.status },
+    structureGraph: buildCadStructureGraph(plan),
     tokens: [...new Set(tokens.filter(Boolean))].sort(),
     latent: { kind: "sparse-cad-token-baseline", learnedRepresentation: "CAD structure JSON", tokens: [...new Set(tokens.filter(Boolean))].sort() },
     geometry
