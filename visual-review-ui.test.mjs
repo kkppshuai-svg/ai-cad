@@ -62,7 +62,8 @@ test("app wires manual visual review to screenshot capture and backend endpoint"
 
 test("completed generation enters an automatic review/improvement loop", () => {
   assert.match(appJs, /async function runAutomaticReviewLoop\(/);
-  assert.match(appJs, /else await runAutomaticReviewLoop\(\{ request: message \|\| "根据参考图片建模", assembly: result\.assembly \}\)/);
+  assert.match(appJs, /verificationSupplement \? result\.fbsAnalysis\.requirements : message/);
+  assert.match(appJs, /else await runAutomaticReviewLoop\(\{ request, assembly: result\.assembly \}\)/);
   assert.match(appJs, /自动审查中/);
   assert.match(appJs, /自动审查\/改进失败/);
   assert.match(appJs, /剩余问题需要后期输入尺寸、约束或人工确认/);

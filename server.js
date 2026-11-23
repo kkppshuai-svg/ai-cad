@@ -42,9 +42,9 @@ import { runWithTimeoutRetry } from "./codex-retry.js";
 import { generatePlanWithProfileRepair, normalizeGeneratedPlanCandidate } from "./planner-profile-repair.js";
 import { synchronizeConversationWithAssembly } from "./conversation-state.js";
 import { actionableVisualFindings, buildVisualImprovementValidationRepairMessage, buildVisualReviewImprovementMessage, buildVisualReviewInstruction, buildVisualReviewReportRepairMessage, normalizeVisualReviewResult, visualReviewImprovementEligibility } from "./visual-review.js";
-import { canPromoteRevision } from "./cad-validation.js";
+import { canPromoteRevision, engineeringPromotionBlock, geometryAllowsPromotion } from "./cad-validation.js";
 import { createRouteTable, matchRoute } from "./api-routes.js";
-import { buildValidatedAssembly } from "./assembly-build.js";
+import { buildCadQueryManifest, buildValidatedAssembly } from "./assembly-build.js";
 import { createRepairPlanner, normalizeWebSearchOptions, runConversationEditTurn, sanitizeFbsContext, shouldResetPlanForMessage } from "./conversation-turn.js";
 import { boundedInt, sanitizeText } from "./text-utils.js";
 import { buildPackageAudit, renderMatesMarkdown } from "./kinematic-package-report.js";
@@ -56,6 +56,7 @@ import { runAssemblyValidationRepairLoop } from "./validation-repair-loop.js";
 import { buildNema23LBracketPlan } from "./nema23-template.js";
 import { MAX_ASSEMBLY_PARTS } from "./assembly-plan-limits.js";
 import { normalizeFbsAnalysis } from "./fbs-workflow.js";
+import { compileFbsVerification } from "./fbs-verification.js";
 import { CadLatentTrainingManager } from "./cad-latent-training.js";
 import { initializeNativeRevision, editNativeRevision, revertNativeRevision, isNativeJob, persistNativeState, nativeAssemblyReviewEvidence } from "./native-revisions.js";
 import { createReviewProposal, planReviewProposal, assertProposalPatch } from "./review-improvement.js";
@@ -248,7 +249,9 @@ async function handleApi(req, res, url) {
     if (parametricRoute.action === "edit") {
       const body = await readJson(req);
       const patch = body.editPatch || body.patch || body;
+      const engineeringVerification = readEngineeringVerification(body);
       if (isNativeJob(job)) {
+        if (engineeringVerification !== undefined) return json(res, 422, { error: "此验证流程目前支持 CadQuery 构建。" });
         const revision = await editNativeRevision({ root: assemblyDir, job, patch, bridge: usdBrep, channel: unifiedReview, sourceDir: __dirname });
         return json(res, revision.status === "failed" ? 422 : 200, { assembly: publicAssembly(job), revision });
       }
@@ -256,6 +259,7 @@ async function handleApi(req, res, url) {
         revisionRoot: assemblyDir,
         job,
         patch,
+        engineeringVerification,
         executeBuild: executeParametricRevisionBuild,
         finalizeBuild: (context) => finalizeParametricRevisionBuild(job, context)
       });
@@ -592,15 +596,24 @@ async function handleVisualReview(req, res, url) {
 // POST /api/assembly/repair
 async function handleAssemblyRepair(req, res, url) {
   const body = await readJson(req);
+  const engineeringVerification = readEngineeringVerification(body);
   const assemblyId = sanitizeText(body.assemblyId || "", 120);
   if (!assemblyId) return json(res, 400, { error: "assemblyId is required" });
   const failedJob = assemblyJobs.get(assemblyId) || await restoreAssemblyJob(assemblyDir, assemblyId).catch(() => null);
   if (!failedJob) return json(res, 404, { error: "Assembly job not found" });
-  if (isNativeJob(failedJob)) return handleNativeReviewImproveBody({ ...body, apply: true }, res, failedJob);
+  if (isNativeJob(failedJob)) {
+    if (engineeringVerification !== undefined) return json(res, 422, { error: "此验证流程目前支持 CadQuery 构建。" });
+    return handleNativeReviewImproveBody({ ...body, apply: true }, res, failedJob);
+  }
   if (failedJob.status !== "validation_failed") {
     return json(res, 409, { error: `Assembly does not need geometry repair (current status: ${failedJob.status || "unknown"})`, assembly: publicAssembly(failedJob) });
   }
-  const repaired = await buildAssembly(failedJob.plan, { repairAudit: failedJob.repairAudit || [] });
+  const block = engineeringPromotionBlock(failedJob.validationReport);
+  if (block && engineeringVerification === undefined) {
+    return json(res, 422, { ok: false, ...block, assembly: publicAssembly(failedJob) });
+  }
+  const plan = engineeringVerification === undefined ? failedJob.plan : withEngineeringVerification(failedJob.plan, engineeringVerification);
+  const repaired = await rebuildAssemblyCandidate(failedJob, plan);
   if (body.conversationId) {
     const conversation = conversations.get(String(body.conversationId));
     if (conversation) {
@@ -610,7 +623,17 @@ async function handleAssemblyRepair(req, res, url) {
       await persistConversation(conversation, repaired.plan);
     }
   }
-  return json(res, 200, { ok: repaired.status === "done", assembly: publicAssembly(repaired), sourceAssemblyId: assemblyId });
+  const ok = repaired.status === "done";
+  return json(res, ok ? 200 : 422, { ok, assembly: publicAssembly(repaired), sourceAssemblyId: assemblyId });
+}
+
+async function rebuildAssemblyCandidate(source, plan) {
+  try {
+    return await buildAssembly(plan, { repairAudit: source.repairAudit || [] });
+  } catch (error) {
+    if (!error.previewAssembly || !Object.hasOwn(plan, "engineeringVerification")) throw error;
+    return error.previewAssembly;
+  }
 }
 
 // POST /api/visual-review/repair
@@ -668,6 +691,7 @@ async function handleGenerate(req, res, url) {
 // POST /api/chat
 async function handleChat(req, res, url) {
   const body = await readJson(req);
+  const engineeringVerification = readEngineeringVerification(body);
   const message = String(body.message || "").trim();
   const conversationId = String(body.conversationId || randomUUID());
   const webSearch = normalizeWebSearchOptions(body.webSearch, { defaultMaxResults: webSearchMaxResults });
@@ -679,7 +703,7 @@ async function handleChat(req, res, url) {
     message || "请根据附带的参考图片建模这个物体。",
     webSearch,
     imageAttachments,
-    { activePartId: body.activePartId, activeFeatureId: body.activeFeatureId, fbs: body.fbs }
+    { activePartId: body.activePartId, activeFeatureId: body.activeFeatureId, fbs: body.fbs, engineeringVerification }
   );
   return json(res, 200, result);
 }
@@ -819,6 +843,12 @@ async function handleConversationTurn(conversationId, message, webSearch = { ena
   if (uiContext.activePartId) conversation.activePartId = sanitizeText(uiContext.activePartId, 120);
   if (uiContext.activeFeatureId) conversation.activeFeatureId = sanitizeText(uiContext.activeFeatureId, 180);
   if (uiContext.fbs && typeof uiContext.fbs === "object") conversation.fbs = sanitizeFbsContext(uiContext.fbs);
+  const currentJob = conversation.assemblyId ? assemblyJobs.get(conversation.assemblyId) : null;
+  if (currentJob) synchronizeConversationWithAssembly(conversation, currentJob);
+  const supplement = message.match(/^补充验收(?:条件)?\s*[：:]\s*([\s\S]+)$/)?.[1]?.trim();
+  if (supplement && !options.internalRepair && !uiContext.engineeringVerification) {
+    return supplementFbsVerification(conversation, currentJob, supplement);
+  }
 
   const search = webSearch.enabled
     ? await searchCadReferences(webSearch.query || buildCadSearchQuery(message), { maxResults: webSearch.maxResults })
@@ -829,15 +859,12 @@ async function handleConversationTurn(conversationId, message, webSearch = { ena
     publish("search:done", { conversationId, search: publicSearch(search) });
   }
 
-  const currentJob = conversation.assemblyId ? assemblyJobs.get(conversation.assemblyId) : null;
-  if (currentJob) {
-    synchronizeConversationWithAssembly(conversation, currentJob);
-  }
   const resetPlan = shouldResetPlanForMessage(message);
   const planningConversation = resetPlan
     ? { ...conversation, plan: null, currentRevision: null, assemblyId: null, activePartId: null, activeFeatureId: null, fbs: null }
     : conversation;
-  const planned = await generateAssemblyPlan(planningConversation, message, search, cadReferenceContext, imageAttachments);
+  const inheritedVerification = uiContext.engineeringVerification ?? planningConversation.plan?.engineeringVerification;
+  const planned = await generateAssemblyPlan(planningConversation, message, search, cadReferenceContext, imageAttachments, inheritedVerification?.requirements);
   if (planned.mode === "ambiguous") {
     conversation.messages.push({ role: "assistant", content: planned.reply || "修改目标不唯一，请确认具体零件或特征。", at: new Date().toISOString() });
     conversations.set(conversationId, conversation);
@@ -858,18 +885,19 @@ async function handleConversationTurn(conversationId, message, webSearch = { ena
       currentJob,
       planned,
       cadReferenceContext,
-      deps: conversationTurnDeps()
+      deps: conversationTurnDeps(uiContext.engineeringVerification)
     });
     conversation.plan = currentJob.plan;
     conversation.currentRevision = currentJob.currentRevision;
     conversation.validationReport = currentJob.validationReport;
-    conversation.messages.push({ role: "assistant", content: planned.reply || "已完成局部参数修改。", at: new Date().toISOString() });
+    const reply = engineeringPromotionBlock(revision.validationReport)?.message || planned.reply || "已完成局部参数修改。";
+    conversation.messages.push({ role: "assistant", content: reply, at: new Date().toISOString() });
     conversations.set(conversationId, conversation);
     await persistConversation(conversation, currentJob.plan);
     publish(revision.status === "current" ? "assembly:done" : "assembly:error", publicAssembly(currentJob));
     return {
       conversationId,
-      reply: planned.reply,
+      reply,
       editPatch: planned.editPatch,
       revision,
       plan: currentJob.plan,
@@ -877,8 +905,10 @@ async function handleConversationTurn(conversationId, message, webSearch = { ena
       search: search ? publicSearch(search) : { enabled: false, results: [] }
     };
   }
-  let plan = planned;
-  const fbsAnalysis = await normalizeAndArchiveConceptPlan(plan, options.originalUserRequest || message, planningConversation.fbs);
+  const fbsAnalysis = await normalizeAndArchiveConceptPlan(planned, options.originalUserRequest || message, planningConversation.fbs);
+  const automaticVerification = inheritedVerification === undefined ? compileFbsVerification(fbsAnalysis) : undefined;
+  const engineeringVerification = inheritedVerification ?? (automaticVerification && { ...automaticVerification, source: "fbs" });
+  let plan = withEngineeringVerification(planned, engineeringVerification);
   conversation.fbs = sanitizeFbsContext(fbsAnalysis);
   plan.concept = fbsAnalysis;
   conversation.plan = plan;
@@ -903,28 +933,48 @@ async function handleConversationTurn(conversationId, message, webSearch = { ena
     initialPlan: plan,
     maximumRepairs: MAX_CONVERSATION_REPAIRS,
     returnPreviewOnFailure: true,
-    build: (candidatePlan) => buildAssembly(candidatePlan),
+    build: (candidatePlan) => buildAssembly(withEngineeringVerification(candidatePlan, engineeringVerification)),
     repair: repairPlanner.repair,
     repairFallback: repairPlanner.repairFallback,
     onRepair: async (context) => {
       // Keep the local `plan` in step so the reply we return is the one that
       // was actually built.
-      plan = context.plan;
-      await repairPlanner.onRepair(context);
+      plan = withEngineeringVerification(context.plan, engineeringVerification);
+      await repairPlanner.onRepair({ ...context, plan });
     }
   });
-  publish("assembly:repair", { status: assembly.status === "done" ? "complete" : "failed", assemblyId: assembly.id, summary: assembly.validationReport?.summary || null, repairAudit: assembly.repairAudit || [], message: assembly.status === "done" ? "自动修复与重新验证完成" : "自动修复轮次结束，仍有阻断错误" });
+  publish("assembly:repair", { status: assembly.status === "done" ? "complete" : "failed", assemblyId: assembly.id, summary: assembly.validationReport?.summary || null, repairAudit: assembly.repairAudit || [], message: assembly.revisionDisposition?.message || (assembly.status === "done" ? "自动修复与重新验证完成" : "自动修复轮次结束，仍有阻断错误") });
   conversation.assemblyId = assembly.id;
   synchronizeConversationWithAssembly(conversation, assembly);
   conversations.set(conversationId, conversation);
   return {
     conversationId,
-    reply: plan.reply,
+    reply: assembly.revisionDisposition?.message || plan.reply,
     plan,
     assembly: publicAssembly(assembly),
     fbsAnalysis,
     search: search ? publicSearch(search) : { enabled: false, results: [] }
   };
+}
+
+async function supplementFbsVerification(conversation, job, supplement) {
+  const concept = job?.plan?.concept;
+  const block = engineeringPromotionBlock(job?.validationReport);
+  if (job?.status !== "validation_failed" || block?.code !== "ENGINEERING_EVIDENCE_REQUIRED" || job.plan.engineeringVerification?.source !== "fbs" || !concept) {
+    throw Object.assign(new Error("当前会话没有待补充验收条件的 FBS 候选。"), { status: 409 });
+  }
+  const verificationSupplement = [concept.verificationSupplement, supplement].filter(Boolean).join("\n");
+  const fbsAnalysis = { ...concept, verificationSupplement };
+  const contract = compileFbsVerification(fbsAnalysis, { criteria: verificationSupplement });
+  const plan = withEngineeringVerification({ ...job.plan, concept: fbsAnalysis }, { ...contract, source: "fbs" });
+  const assembly = await rebuildAssemblyCandidate(job, plan);
+  const reply = assembly.revisionDisposition?.message || "已按补充的验收条件复验当前候选。";
+  conversation.assemblyId = assembly.id;
+  synchronizeConversationWithAssembly(conversation, assembly);
+  conversation.messages.push({ role: "assistant", content: reply, at: new Date().toISOString() });
+  conversations.set(conversation.id, conversation);
+  await persistConversation(conversation, assembly.plan);
+  return { conversationId: conversation.id, reply, plan: assembly.plan, assembly: publicAssembly(assembly), fbsAnalysis, search: { enabled: false, results: [] } };
 }
 
 
@@ -1547,7 +1597,7 @@ async function invokeLlmText({ label, fallbackWarning, threadKey, prompt, images
   return runCodexTextInvocation({ label, fallbackWarning, threadKey, prompt, images, fastPlanner, timeoutMs, maxBuffer });
 }
 
-async function generateAssemblyPlan(conversation, message, searchContext = null, cadReferenceContext = null, imageAttachments = []) {
+async function generateAssemblyPlan(conversation, message, searchContext = null, cadReferenceContext = null, imageAttachments = [], engineeringRequirements = null) {
   if (!conversation?.currentRevision && !(conversation?.plan?.parts || []).length && !imageAttachments.length) {
     const deterministicPlan = buildNema23LBracketPlan(message);
     if (deterministicPlan) {
@@ -1580,7 +1630,9 @@ async function generateAssemblyPlan(conversation, message, searchContext = null,
       label: "planner",
       fallbackWarning: "Codex app-server planner fallback",
       threadKey: `planner:${conversation.id || "default"}`,
-      prompt: instruction,
+      prompt: Array.isArray(engineeringRequirements) && engineeringRequirements.length
+        ? `${instruction}\nUser's engineering acceptance requirements (JSON): ${JSON.stringify(engineeringRequirements)}`
+        : instruction,
       images: imageAttachments,
       fastPlanner,
       timeoutMs: imageAttachments.length
@@ -1659,7 +1711,7 @@ function assemblyBuildDeps() {
   };
 }
 
-async function runCadQueryAssemblyBuild({ manifestPath }) {
+async function runCadQueryAssemblyBuild({ manifestPath, maxBuffer = 200000 }) {
   const buildResult = await runProcess(cadqueryPython, [path.join(__dirname, "scripts/cadquery_build.py")], {
     cwd: __dirname,
     env: {
@@ -1667,7 +1719,7 @@ async function runCadQueryAssemblyBuild({ manifestPath }) {
       AI_CAD_CADQUERY_MANIFEST: manifestPath
     },
     timeoutMs: 90000,
-    maxBuffer: 200000
+    maxBuffer
   });
   return extractJsonObject(buildResult.stdout);
 }
@@ -1688,12 +1740,13 @@ function plannerBridge() {
     generateAssemblyPlan(conversation, message, null, cadReferenceContext, []);
 }
 
-function conversationTurnDeps() {
+function conversationTurnDeps(engineeringVerification) {
   return {
     editRevision: ({ job, patch }) => editAssemblyRevision({
       revisionRoot: assemblyDir,
       job,
       patch,
+      engineeringVerification,
       executeBuild: executeParametricRevisionBuild,
       finalizeBuild: (context) => finalizeParametricRevisionBuild(job, context)
     }),
@@ -1705,25 +1758,9 @@ function conversationTurnDeps() {
 
 async function executeParametricRevisionBuild({ plan, outputDir }) {
   if (plan.engine === "nvidia-usd-brep") throw new Error("原生模型禁止进入 CadQuery 修改链路");
-  const manifest = {
-    name: plan.name || "AI_CAD_Assembly",
-    outputDir,
-    relations: plan.relations || [],
-    joints: plan.joints || [],
-    constraints: plan.constraints || [],
-    intendedContacts: plan.intendedContacts || [],
-    repairActions: plan.repairActions || [],
-    parts: plan.parts || []
-  };
   const manifestPath = path.join(outputDir, "assembly-manifest.json");
-  await writeFile(manifestPath, JSON.stringify(manifest, null, 2), "utf8");
-  const buildResult = await runProcess(cadqueryPython, [path.join(__dirname, "scripts/cadquery_build.py")], {
-    cwd: __dirname,
-    env: { ...process.env, AI_CAD_CADQUERY_MANIFEST: manifestPath },
-    timeoutMs: 90000,
-    maxBuffer: 300000
-  });
-  const summary = extractJsonObject(buildResult.stdout);
+  await writeFile(manifestPath, JSON.stringify(buildCadQueryManifest(plan, outputDir), null, 2), "utf8");
+  const summary = await runCadQueryAssemblyBuild({ manifestPath, maxBuffer: 300000 });
   summary.manifestPath = manifestPath;
   await writeFile(path.join(outputDir, "build-summary.json"), JSON.stringify(summary, null, 2), "utf8");
   return summary;
@@ -2455,12 +2492,12 @@ function publicAssembly(job) {
 
 function assemblyAcceptanceGate(job) {
   const validation = job?.latestUnifiedReview || job?.validationReport || {};
-  const geometryPassed = job?.status === "done" && canPromoteRevision(validation);
+  const geometryPassed = geometryAllowsPromotion(validation);
   const visualCurrent = Boolean(job?.visualReview?.revisionId && String(job.visualReview.revisionId) === String(reviewRevisionId(job)));
   const decision = attachUnifiedDecision(validation, { engine: job.engine, visualReview: job.visualReview, revisionId: reviewRevisionId(job) });
   const visualPassed = visualCurrent && decision.review.visualDecision === "pass";
   return {
-    passed: geometryPassed && visualPassed && decision.review.deliveryDecision === "pass",
+    passed: geometryPassed && visualPassed && decision.review.deliveryDecision === "pass" && job?.status === "done",
     review: decision.review,
     geometry: {
       passed: geometryPassed,
@@ -2520,11 +2557,20 @@ async function ensureAssemblyFcstd(job) {
     shouldBuild = fcstdInfo.mtimeMs < scriptInfo.mtimeMs;
   }
   if (shouldBuild) {
-    const result = await runProcess(freecadCmd, [scriptPath], {
-      cwd: job.kinematicPackagePath,
-      timeoutMs: 120000,
-      maxBuffer: 500000
-    });
+    let result;
+    try {
+      result = await runProcess(freecadCmd, [scriptPath], {
+        cwd: job.kinematicPackagePath,
+        timeoutMs: 120000,
+        maxBuffer: 500000
+      });
+    } catch (error) {
+      if (error.code !== "ENOENT") throw error;
+      job.fcstdPath = null;
+      job.freeCadBridgeLog = null;
+      job.freeCadBridgeReport = { status: "unavailable", reason: "FREECAD_CMD_NOT_FOUND" };
+      return { fcstdPath: null, scriptPath };
+    }
     job.freeCadBridgeLog = {
       stdout: result.stdout.trim(),
       stderr: result.stderr.trim()
@@ -2895,6 +2941,23 @@ async function readJson(req) {
   if (!chunks.length) return {};
   const text = Buffer.concat(chunks).toString("utf8");
   return JSON.parse(text);
+}
+
+function readEngineeringVerification(body) {
+  if (!Object.hasOwn(body, "engineeringVerification")) return undefined;
+  const value = body.engineeringVerification;
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw Object.assign(new Error("engineeringVerification 必须是 JSON 对象。"), { status: 400 });
+  }
+  const { source, ...contract } = value;
+  return contract;
+}
+
+function withEngineeringVerification(plan, engineeringVerification) {
+  const next = { ...plan };
+  if (engineeringVerification === undefined) delete next.engineeringVerification;
+  else next.engineeringVerification = engineeringVerification;
+  return next;
 }
 
 function json(res, status, payload) {

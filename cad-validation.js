@@ -45,10 +45,24 @@ export function mergeValidationReports(inputs = {}) {
 }
 
 
-export function canPromoteRevision(report) {
+export function geometryAllowsPromotion(report) {
   return Boolean(report) && Object.hasOwn(report, "blockingErrorCount") && Number(report.blockingErrorCount) === 0 && report.valid !== false
     && !(report.issues || []).some(issue => issue.severity === "error")
     && (!report.review || report.review.geometryDecision === "pass");
+}
+
+export function canPromoteRevision(report) {
+  return geometryAllowsPromotion(report)
+    && (!Object.hasOwn(report, "engineeringVerification") || report.engineeringVerification?.decision === "pass");
+}
+
+export function engineeringPromotionBlock(report) {
+  if (!geometryAllowsPromotion(report) || !Object.hasOwn(report, "engineeringVerification")) return null;
+  const decision = report.engineeringVerification?.decision;
+  if (decision === "pass") return null;
+  return decision === "fail"
+    ? { code: "ENGINEERING_LIMIT_EXCEEDED", message: "候选版本未满足工程验收条件。" }
+    : { code: "ENGINEERING_EVIDENCE_REQUIRED", message: "候选版本需要补充工程证据。" };
 }
 
 export function validateFbsAcceptanceCoverage(plan = {}, validationReport = {}) {

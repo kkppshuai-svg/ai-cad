@@ -4,7 +4,7 @@ import path from "node:path";
 
 import { analyzeAssemblyConstraints } from "./assembly-constraints.js";
 import { composeAssemblyValidationReport } from "./assembly-validation-report.js";
-import { canPromoteRevision, proposeDeterministicRepairs } from "./cad-validation.js";
+import { canPromoteRevision, engineeringPromotionBlock, proposeDeterministicRepairs } from "./cad-validation.js";
 import { applyEditPatch } from "./parametric-edit.js";
 import { checksumParametricPart } from "./parametric-plan.js";
 import { createCandidateRevision, markRevisionFailed, promoteRevision, writeRevisionState } from "./revision-store.js";
@@ -17,12 +17,12 @@ export const REVISION_DELIVERY_KEYS = [
   "completedAt", "status", "reviewBindings", "reviewPlanChecksum", "usdBrepPath"
 ];
 
-export async function editAssemblyRevision({ revisionRoot, job, patch, executeBuild, finalizeBuild }) {
-  return withAssemblyRevisionLock(revisionRoot, job?.id || "missing", () => editAssemblyRevisionUnlocked({ revisionRoot, job, patch, executeBuild, finalizeBuild }));
+export async function editAssemblyRevision({ revisionRoot, job, patch, engineeringVerification, executeBuild, finalizeBuild }) {
+  return withAssemblyRevisionLock(revisionRoot, job?.id || "missing", () => editAssemblyRevisionUnlocked({ revisionRoot, job, patch, engineeringVerification, executeBuild, finalizeBuild }));
 }
 
 
-async function editAssemblyRevisionUnlocked({ revisionRoot, job, patch, executeBuild, finalizeBuild }) {
+async function editAssemblyRevisionUnlocked({ revisionRoot, job, patch, engineeringVerification, executeBuild, finalizeBuild }) {
   if (!job?.id || !job.plan || !job.currentRevision) throw new Error("Assembly job has no current parametric revision");
   if (typeof executeBuild !== "function") throw new TypeError("executeBuild is required");
   let edit;
@@ -60,6 +60,7 @@ async function editAssemblyRevisionUnlocked({ revisionRoot, job, patch, executeB
     };
   }
   let workingPlan = edit.plan;
+  if (engineeringVerification !== undefined) workingPlan.engineeringVerification = structuredClone(engineeringVerification);
   let affectedPartIds = [...edit.affectedPartIds];
   let assemblyAffectedPartIds = [...edit.assemblyAffectedPartIds];
   const repairAudit = [];
@@ -73,7 +74,9 @@ async function editAssemblyRevisionUnlocked({ revisionRoot, job, patch, executeB
     });
     const outputDir = path.join(path.resolve(revisionRoot), job.id, "revisions", candidate.id, "artifacts");
     await mkdir(outputDir, { recursive: true });
-    const buildPlan = await withReusableParts(workingPlan, job.parts || [], affectedPartIds);
+    const buildPlan = Object.hasOwn(workingPlan, "engineeringVerification")
+      ? structuredClone(workingPlan)
+      : await withReusableParts(workingPlan, job.parts || [], affectedPartIds);
     if (repairActions.length) buildPlan.repairActions = structuredClone(repairActions);
     let buildSummary;
     let buildError = null;
@@ -96,6 +99,11 @@ async function editAssemblyRevisionUnlocked({ revisionRoot, job, patch, executeB
     validationReport.assemblyId = job.id;
     validationReport.revisionId = candidate.id;
     if (!canPromoteRevision(validationReport)) {
+      const engineeringBlock = engineeringPromotionBlock(validationReport);
+      if (engineeringBlock) {
+        const failed = await markRevisionFailed(revisionRoot, job.id, candidate.id, { ...engineeringBlock, validationReport, repairAudit });
+        return { ...failed, ...engineeringBlock, validationReport, repairAudit, currentRevision: job.currentRevision };
+      }
       const repairs = proposeDeterministicRepairs(validationReport, workingPlan);
       const canRetry = attempt < 2 && (repairs.patch.operations.length > 0 || repairs.actions.length > 0);
       if (canRetry) {

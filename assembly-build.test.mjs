@@ -4,6 +4,8 @@ import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { buildValidatedAssembly, buildCadQueryManifest, describeBlockingValidationError, MAX_DETERMINISTIC_REPAIR_ATTEMPTS } from "./assembly-build.js";
+import { restoreAssemblyJob } from "./assembly-job-recovery.js";
+import { runAssemblyValidationRepairLoop } from "./validation-repair-loop.js";
 
 function tempRoot() {
   return mkdtemp(path.join(os.tmpdir(), "aicad-build-"));
@@ -113,6 +115,47 @@ test("a clean build promotes its candidate revision and publishes done", async (
   assert.equal(manifest.name, "bracket");
   const state = JSON.parse(await readFile(path.join(root, "asm-1", "revisions", "rev-0001", "revision.json"), "utf8"));
   assert.equal(state.status, "current");
+});
+
+test("engineering decisions share the build and a blocked initial candidate survives recovery", async () => {
+  const root = await tempRoot();
+  const plan = samplePlan();
+  plan.engineeringVerification = { requirements: [{ id: "envelope", kind: "envelope", maxMm: [80, 60, 8] }] };
+  let builds = 0;
+  let decision = "hold";
+  const { deps, learned } = makeDeps(root, {
+    runCadQueryBuild: async ({ manifestPath, outDir, plan: candidate }) => {
+      builds += 1;
+      const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
+      assert.deepEqual(manifest.engineeringVerification, plan.engineeringVerification);
+      const summary = cleanBuildSummary(candidate, outDir);
+      summary.geometryValidation.engineeringVerification = { decision };
+      return materializeArtifacts(summary);
+    },
+    applyBuildSummaryToJob: (job, summary) => { job.stepPath = summary.stepPath; }
+  });
+  const preview = await runAssemblyValidationRepairLoop({
+    initialPlan: plan,
+    build: (candidate) => buildValidatedAssembly({ plan: candidate, deps }),
+    repair: async () => assert.fail("missing engineering evidence must stop automatic repair"),
+    returnPreviewOnFailure: true
+  });
+  assert.equal(builds, 1);
+  assert.equal(preview.validationReport.review.geometryDecision, "pass");
+  assert.equal(preview.validationReport.review.engineeringDecision, "hold");
+  assert.equal(preview.currentRevision, undefined);
+  assert.deepEqual(learned, []);
+  const restored = await restoreAssemblyJob(root, preview.id);
+  assert.equal(restored.status, "validation_failed");
+  assert.equal(restored.currentRevision, undefined);
+  assert.equal(restored.revisionDisposition.code, "ENGINEERING_EVIDENCE_REQUIRED");
+  assert.deepEqual(restored.plan.engineeringVerification, plan.engineeringVerification);
+
+  decision = "pass";
+  const passed = await buildValidatedAssembly({ plan: restored.plan, deps });
+  assert.equal(builds, 2);
+  assert.equal(passed.validationReport.engineeringVerification.decision, "pass");
+  assert.equal(passed.currentRevision, "rev-0001");
 });
 
 test("a blocking validation failure throws with the report and the failed plan attached", async () => {

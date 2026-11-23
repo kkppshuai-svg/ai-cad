@@ -20,13 +20,16 @@ export function attachUnifiedDecision(report, { engine = "cadquery", visualRevie
   const currentVisual = Boolean(revisionId && visualReview?.revisionId && String(visualReview.revisionId) === String(revisionId));
   const visual = currentVisual && visualReview.status === "pass" && (!visualReview.recommendedNextAction || visualReview.recommendedNextAction === "accept") ? "pass"
     : currentVisual ? "fail" : "pending";
+  const engineering = report.engineeringVerification?.decision;
+  const delivery = geometry === "fail" || visual === "fail" || engineering === "fail" ? "fail"
+    : visual === "pass" && (!Object.hasOwn(report, "engineeringVerification") || engineering === "pass") ? "pass" : "pending";
   return { ...report, review: { protocol: REVIEW_POLICY.version, engine, policy: REVIEW_POLICY,
     rollout: { phase: engine === "nvidia-usd-brep" ? "native-only" : "parallel-validation", primaryEngine: "nvidia-usd-brep", parallelEngine: engine === "nvidia-usd-brep" ? null : "cadquery", userAcceptance: "pending" },
     coverage: { topology: engine === "nvidia-usd-brep" ? "SMLib manifold topology" : "OpenCascade exact BRepCheck with geometric controls",
       serialization: "volume, solid count, center and absolute bounds", dimensions: "required finite BRep measurements; unsupported checks block",
       surfaceDistance: "not a surface Hausdorff-distance proof", manufacturing: "heuristic engineering checks" },
-    geometryDecision: geometry, visualDecision: visual,
-    deliveryDecision: geometry === "fail" || visual === "fail" ? "fail" : visual === "pass" ? "pass" : "pending",
+    geometryDecision: geometry, visualDecision: visual, deliveryDecision: delivery,
+    ...(engineering ? { engineeringDecision: engineering } : {}),
     constraintMethod: "AICAD rule-based rigid-body analysis; not a general numerical constraint solver",
     ...(cache ? { cache } : {}) } };
 }

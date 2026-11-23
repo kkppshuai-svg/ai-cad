@@ -103,6 +103,36 @@ test("failed candidate preserves current revision and plan", async () => {
   assert.equal((await getCurrentRevision(root, job.id)).id, "rev-0001");
 });
 
+test("engineering requirements persist across edits and limit failures preserve the current revision", async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "aicad-api-"));
+  const job = await currentJob(root);
+  const engineeringVerification = { requirements: [{ id: "height", kind: "envelope", maxMm: [20, 20, 6] }] };
+  const patch = (baseRevision, value) => ({ baseRevision, operations: [{ op: "set_param", partId: "left", featureId: "left.base.01", path: "params.size.2", value }] });
+  let decision = "pass";
+  const executeBuild = async ({ plan }) => {
+    assert.deepEqual(plan.engineeringVerification, engineeringVerification);
+    assert.ok(plan.parts.every((part) => !part.reuseStepPath));
+    return {
+      stepPath: "/new/assembly.step",
+      parts: plan.parts.map((part) => ({ id: part.id, localStepPath: `/new/${part.id}.step` })),
+      geometryValidation: { engineeringVerification: { decision }, parts: plan.parts.map(reviewGeometry), stepRoundTrip: { valid: true, issues: [] } }
+    };
+  };
+  const passed = await editAssemblyRevision({ revisionRoot: root, job, patch: patch(job.currentRevision, 6), engineeringVerification, executeBuild });
+  assert.equal(passed.status, "current");
+  assert.deepEqual(job.plan.engineeringVerification, engineeringVerification);
+
+  decision = "fail";
+  const failed = await editAssemblyRevision({ revisionRoot: root, job, patch: patch(job.currentRevision, 7), executeBuild });
+  assert.equal(failed.status, "failed");
+  assert.equal(failed.code, "ENGINEERING_LIMIT_EXCEEDED");
+  assert.equal(failed.validationReport.review.geometryDecision, "pass");
+  assert.equal(failed.validationReport.review.deliveryDecision, "fail");
+  assert.equal(Boolean(failed.aiRepairRequired), false);
+  assert.equal(job.currentRevision, passed.id);
+  assert.equal((await getCurrentRevision(root, job.id)).id, passed.id);
+});
+
 test("invalid dependent feature removal is returned as an AI-repairable validation failure", async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), "aicad-api-"));
   const job = await currentJob(root);

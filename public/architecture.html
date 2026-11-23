@@ -4840,7 +4840,7 @@
       </div>
     </div>
 
-    <script id="archify-guided-views-data" type="application/json">[{"id":"modeling_path","label":"参数化建模主链","focus":["workbench","orchestrator","planner","parametric","cadkernel","validation","revision","delivery"],"note":"从用户输入到可验证 STEP/FCStd 的主交付路径。"},{"id":"ai_context","label":"AI 规划与上下文","focus":["orchestrator","planner","codex","catalog","learning"],"note":"Codex、资料检索、标准件和 VAE 只辅助参数化计划，不替代几何验证。"},{"id":"repair_loop","label":"检查与修复闭环","focus":["visual","orchestrator","parametric","validation","revision"],"note":"问题必须定位到零件和特征，候选修订通过验证后才晋升。"}]</script>
+    <script id="archify-guided-views-data" type="application/json">[{"id":"modeling_path","label":"从需求到修订","focus":["workbench","orchestrator","planner","parametric","cadkernel","validation","revision","delivery"],"note":"同次构建产生几何事实，按需检查工程条件，通过后晋级修订。"},{"id":"ai_context","label":"AI 规划与上下文","focus":["orchestrator","planner","codex","catalog","learning"],"note":"Codex、资料检索、标准件和 VAE 只辅助参数化计划，不替代几何验证。"},{"id":"repair_loop","label":"审查与复验","focus":["visual","orchestrator","parametric","validation","revision"],"note":"几何问题进入修复，工程待确认时保留候选和补证据提示。"}]</script>
 
     <div class="guided-views no-print" id="guided-views" hidden aria-label="Guided diagram views">
       <button id="guided-view-prev" type="button" aria-label="Previous guided view" title="Previous guided view ([)">&#8592;</button>
@@ -4918,14 +4918,14 @@
         <path data-edge-from="planner" data-edge-to="parametric" data-edge-label="规范化 featureTree" data-edge-key="2" data-edge-id="plan_normalize" data-composition-points="690,354;745,354" d="M 690 354 L 745 354" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
         <path data-edge-from="parametric" data-edge-to="cadkernel" data-edge-label="构建参数化 BREP" data-edge-key="3" data-edge-id="brep_build" data-composition-points="920,354;975,354" d="M 920 354 L 975 354" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
         <path data-edge-from="cadkernel" data-edge-to="validation" data-edge-label="几何与测量证据" data-edge-key="4" data-edge-id="geometry_evidence" data-composition-points="1150,354;1205,354" d="M 1150 354 L 1205 354" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
-        <path data-edge-from="validation" data-edge-to="revision" data-edge-label="通过后晋升" data-edge-key="5" data-edge-id="candidate_revision" data-composition-points="1297.5,393;1297.5,417;1174,417;1174,584;1150,584" d="M 1297.5 393 L 1297.5 409 Q 1297.5 417 1289.5 417 L 1182 417 Q 1174 417 1174 425 L 1174 576 Q 1174 584 1166 584 L 1150 584" class="a-security" stroke-width="1.5" marker-end="url(#arrowhead-security)"/>
+        <path data-edge-from="validation" data-edge-to="revision" data-edge-label="通过才晋级" data-edge-key="5" data-edge-id="candidate_revision" data-composition-points="1297.5,393;1297.5,417;1174,417;1174,584;1150,584" d="M 1297.5 393 L 1297.5 409 Q 1297.5 417 1289.5 417 L 1182 417 Q 1174 417 1174 425 L 1174 576 Q 1174 584 1166 584 L 1150 584" class="a-security" stroke-width="1.5" marker-end="url(#arrowhead-security)"/>
         <path data-edge-from="revision" data-edge-to="delivery" data-edge-label="当前修订产物" data-edge-key="6" data-edge-id="artifact_delivery" data-composition-points="1150,584;1205,584" d="M 1150 584 L 1205 584" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
         <path data-edge-from="codex" data-edge-to="planner" data-edge-label="JSON 计划 / edit_patch" data-edge-key="7" data-edge-id="codex_plan" data-composition-points="460,126;487.5,126;487.5,354;515,354" d="M 460 126 L 479.5 126 Q 487.5 126 487.5 134 L 487.5 346 Q 487.5 354 495.5 354 L 515 354" class="a-dashed" stroke-width="1.5" marker-end="url(#arrowhead-dashed)"/>
         <path data-edge-from="catalog" data-edge-to="planner" data-edge-label="代码参考与标准件" data-edge-key="8" data-edge-id="catalog_context" data-composition-points="602.5,162;602.5,315" d="M 602.5 162 L 602.5 315" class="a-dashed" stroke-width="1.5" marker-end="url(#arrowhead-dashed)"/>
         <path data-edge-from="learning" data-edge-to="planner" data-edge-label="结构检索上下文" data-edge-key="9" data-edge-id="latent_context" data-composition-points="745,126;717.5,126;717.5,354;690,354" d="M 745 126 L 725.5 126 Q 717.5 126 717.5 134 L 717.5 346 Q 717.5 354 709.5 354 L 690 354" class="a-dashed" stroke-width="1.5" marker-end="url(#arrowhead-dashed)"/>
         <path data-edge-from="visual" data-edge-to="orchestrator" data-edge-label="结构化问题反馈" data-edge-key="10" data-edge-id="review_feedback" data-composition-points="515,584;372.5,584;372.5,393" d="M 515 584 L 380.5 584 Q 372.5 584 372.5 576 L 372.5 393" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
         <path data-edge-from="visual" data-edge-to="parametric" data-edge-label="零件 / 特征目标" data-edge-key="11" data-edge-id="review_target" data-composition-points="602.5,545;602.5,469;832.5,469;832.5,393" d="M 602.5 545 L 602.5 477 Q 602.5 469 610.5 469 L 824.5 469 Q 832.5 469 832.5 461 L 832.5 393" class="a-security" stroke-width="1.5" marker-end="url(#arrowhead-security)"/>
-        <path data-edge-from="validation" data-edge-to="orchestrator" data-edge-label="阻断错误触发修复" data-edge-key="12" data-edge-id="repair_retry" data-composition-points="1390,354;1420,354;1420,690;270,690;270,354;285,354" d="M 1390 354 L 1412 354 Q 1420 354 1420 362 L 1420 682 Q 1420 690 1412 690 L 278 690 Q 270 690 270 682 L 270 361.5 Q 270 354 277.5 354 L 285 354" class="a-security" stroke-width="1.5" marker-end="url(#arrowhead-security)"/>
+        <path data-edge-from="validation" data-edge-to="orchestrator" data-edge-label="修复几何或返回工程证据缺口" data-edge-key="12" data-edge-id="repair_retry" data-composition-points="1390,354;1420,354;1420,690;270,690;270,354;285,354" d="M 1390 354 L 1412 354 Q 1420 354 1420 362 L 1420 682 Q 1420 690 1412 690 L 278 690 Q 270 690 270 682 L 270 361.5 Q 270 354 277.5 354 L 285 354" class="a-security" stroke-width="1.5" marker-end="url(#arrowhead-security)"/>
 
         <!-- Components -->
         <g id="node-workbench" data-node-id="workbench" data-node-label="AI-CAD 工程工作台" tabindex="0" role="button" aria-label="Focus AI-CAD 工程工作台, 对话 · 特征树 · 3D 预览, AI-CAD 本机工程域" aria-pressed="false" data-node-kind="frontend" data-node-sublabel="对话 · 特征树 · 3D 预览" data-node-context="AI-CAD 本机工程域">
@@ -4975,31 +4975,31 @@
         <text data-detail="context" x="832.5" y="368" class="t-muted" font-size="9" text-anchor="middle">featureTree · edit_patch</text>
         </g>
 
-        <g id="node-cadkernel" data-node-id="cadkernel" data-node-label="CadQuery / OCCT" tabindex="0" role="button" aria-label="Focus CadQuery / OCCT, BREP 构建与布尔运算, AI-CAD 本机工程域" aria-pressed="false" data-node-kind="backend" data-node-sublabel="BREP 构建与布尔运算" data-node-context="AI-CAD 本机工程域">
-          <title>CadQuery / OCCT · BREP 构建与布尔运算 · AI-CAD 本机工程域</title>
+        <g id="node-cadkernel" data-node-id="cadkernel" data-node-label="CadQuery / OCCT" tabindex="0" role="button" aria-label="Focus CadQuery / OCCT, 同次构建 · BRep 事实, AI-CAD 本机工程域" aria-pressed="false" data-node-kind="backend" data-node-sublabel="同次构建 · BRep 事实" data-node-context="AI-CAD 本机工程域">
+          <title>CadQuery / OCCT · 同次构建 · BRep 事实 · AI-CAD 本机工程域</title>
           <rect x="975" y="315" width="175" height="78" rx="6" class="c-mask"/>
           <rect x="975" y="315" width="175" height="78" rx="6" class="c-backend" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(981 321) scale(0.6875)">
             <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
           </g>
           <text data-detail-anchor x="1062.5" y="352" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">CadQuery / OCCT</text>
-        <text data-detail="context" x="1062.5" y="368" class="t-muted" font-size="9" text-anchor="middle">BREP 构建与布尔运算</text>
+        <text data-detail="context" x="1062.5" y="368" class="t-muted" font-size="9" text-anchor="middle">同次构建 · BRep 事实</text>
         </g>
 
-        <g id="node-validation" data-node-id="validation" data-node-label="工程验证门" tabindex="0" role="button" aria-label="Focus 工程验证门, 实体 · 尺寸 · 干涉 · 制造性, AI-CAD 本机工程域" aria-pressed="false" data-node-kind="security" data-node-sublabel="实体 · 尺寸 · 干涉 · 制造性" data-node-context="AI-CAD 本机工程域">
-          <title>工程验证门 · 实体 · 尺寸 · 干涉 · 制造性 · AI-CAD 本机工程域</title>
+        <g id="node-validation" data-node-id="validation" data-node-label="统一验收" tabindex="0" role="button" aria-label="Focus 统一验收, 几何 · 可选工程验收, AI-CAD 本机工程域" aria-pressed="false" data-node-kind="security" data-node-sublabel="几何 · 可选工程验收" data-node-context="AI-CAD 本机工程域">
+          <title>统一验收 · 几何 · 可选工程验收 · AI-CAD 本机工程域</title>
           <rect x="1205" y="315" width="185" height="78" rx="6" class="c-mask"/>
           <rect x="1205" y="315" width="185" height="78" rx="6" class="c-security" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="security" class="semantic-sigil s-security" transform="translate(1211 321) scale(0.6875)">
             <path d="M8 2.2 13 4v3.5c0 3.1-1.8 5.4-5 6.5-3.2-1.1-5-3.4-5-6.5V4Z"/>
             <path d="m5.8 8 1.5 1.5 3-3"/>
           </g>
-          <text data-detail-anchor x="1297.5" y="352" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">工程验证门</text>
-        <text data-detail="context" x="1297.5" y="368" class="t-muted" font-size="9" text-anchor="middle">实体 · 尺寸 · 干涉 · 制造性</text>
+          <text data-detail-anchor x="1297.5" y="352" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">统一验收</text>
+        <text data-detail="context" x="1297.5" y="368" class="t-muted" font-size="9" text-anchor="middle">几何 · 可选工程验收</text>
         </g>
 
-        <g id="node-revision" data-node-id="revision" data-node-label="参数化修订库" tabindex="0" role="button" aria-label="Focus 参数化修订库, 候选 · 晋升 · 回滚, AI-CAD 本机工程域" aria-pressed="false" data-node-kind="database" data-node-sublabel="候选 · 晋升 · 回滚" data-node-context="AI-CAD 本机工程域">
-          <title>参数化修订库 · 候选 · 晋升 · 回滚 · AI-CAD 本机工程域</title>
+        <g id="node-revision" data-node-id="revision" data-node-label="参数化修订库" tabindex="0" role="button" aria-label="Focus 参数化修订库, 候选 · 当前修订 · 证据, AI-CAD 本机工程域" aria-pressed="false" data-node-kind="database" data-node-sublabel="候选 · 当前修订 · 证据" data-node-context="AI-CAD 本机工程域">
+          <title>参数化修订库 · 候选 · 当前修订 · 证据 · AI-CAD 本机工程域</title>
           <rect x="975" y="545" width="175" height="78" rx="6" class="c-mask"/>
           <rect x="975" y="545" width="175" height="78" rx="6" class="c-database" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(981 551) scale(0.6875)">
@@ -5007,7 +5007,7 @@
             <path d="M3 4v8c0 1.1 2.2 2 5 2s5-.9 5-2V4M3 8c0 1.1 2.2 2 5 2s5-.9 5-2"/>
           </g>
           <text data-detail-anchor x="1062.5" y="582" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">参数化修订库</text>
-        <text data-detail="context" x="1062.5" y="598" class="t-muted" font-size="9" text-anchor="middle">候选 · 晋升 · 回滚</text>
+        <text data-detail="context" x="1062.5" y="598" class="t-muted" font-size="9" text-anchor="middle">候选 · 当前修订 · 证据</text>
         </g>
 
         <g id="node-delivery" data-node-id="delivery" data-node-label="工程交付" tabindex="0" role="button" aria-label="Focus 工程交付, STEP · FCStd · STL/GLB, AI-CAD 本机工程域" aria-pressed="false" data-node-kind="cloud" data-node-sublabel="STEP · FCStd · STL/GLB" data-node-context="AI-CAD 本机工程域">
@@ -5092,9 +5092,9 @@
           <rect x="1139.4" y="397" width="77.2" height="14" rx="3" class="c-mask"/>
           <text x="1178" y="407" class="t-muted" font-size="8" text-anchor="middle">几何与测量证据</text>
         </g>
-        <g data-detail="context" data-edge-from="validation" data-edge-to="revision" data-edge-label="通过后晋升" data-edge-key="5" data-edge-id="candidate_revision">
+        <g data-detail="context" data-edge-from="validation" data-edge-to="revision" data-edge-label="通过才晋级" data-edge-key="5" data-edge-id="candidate_revision">
           <rect x="1206.75" y="397" width="58" height="14" rx="3" class="c-mask"/>
-          <text x="1235.75" y="407" class="t-security" font-size="8" text-anchor="middle">通过后晋升</text>
+          <text x="1235.75" y="407" class="t-security" font-size="8" text-anchor="middle">通过才晋级</text>
         </g>
         <g data-detail="context" data-edge-from="revision" data-edge-to="delivery" data-edge-label="当前修订产物" data-edge-key="6" data-edge-id="artifact_delivery">
           <rect x="1144.2" y="627" width="67.6" height="14" rx="3" class="c-mask"/>
@@ -5120,9 +5120,9 @@
           <rect x="676.5" y="449" width="82" height="14" rx="3" class="c-mask"/>
           <text x="717.5" y="459" class="t-security" font-size="8" text-anchor="middle">零件 / 特征目标</text>
         </g>
-        <g data-detail="context" data-edge-from="validation" data-edge-to="orchestrator" data-edge-label="阻断错误触发修复" data-edge-key="12" data-edge-id="repair_retry">
+        <g data-detail="context" data-edge-from="validation" data-edge-to="orchestrator" data-edge-label="修复几何或返回工程证据缺口" data-edge-key="12" data-edge-id="repair_retry">
           <rect x="806.6" y="700" width="86.8" height="14" rx="3" class="c-mask"/>
-          <text x="850" y="710" class="t-security" font-size="8" text-anchor="middle">阻断错误触发修复</text>
+          <text x="850" y="710" class="t-security" font-size="8" text-anchor="middle">修复几何或返回工程证据缺口</text>
         </g>
 
         <!-- Legend -->
@@ -5353,8 +5353,8 @@
           <h3>工程门禁</h3>
         </div>
         <ul>
-          <li>&bull; BREP/STEP 测量确认关键尺寸</li>
-          <li>&bull; 构建、干涉与约束通过后才晋升</li>
+          <li>&bull; 按需检查尺寸、载荷或试验记录</li>
+          <li>&bull; 通过才晋级，待确认保留待补证据</li>
         </ul>
       </div>
 

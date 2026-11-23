@@ -11,6 +11,7 @@ const state = {
   lastSearch: null,
   currentJobId: null,
   currentAssembly: null,
+  engineeringCandidate: null,
   usdBrepAvailable: false,
   usdExportBusy: false,
   usdExportTarget: null,
@@ -488,18 +489,30 @@ async function sendChat() {
       els.fsbStatus.textContent = "AI 已完成 R→F→Be→S 分析，结果已归档并用于 CAD 规划";
     }
     renderSearchResults();
-    pushMessage("assistant", result.reply || "装配已生成。");
+    const candidate = result.revision?.status === "failed" ? result.revision : null;
+    const candidateDecision = engineeringBlock({ validation: candidate?.validationReport });
+    state.engineeringCandidate = candidateDecision ? candidate : null;
+    pushMessage("assistant", candidateDecision
+      ? `本次修改${candidateDecision === "hold" ? "需补充工程证据" : "未满足工程要求"}，当前继续使用原版本。候选结果见统一审查。`
+      : result.reply || "装配已生成。");
     await applyPlan(result.plan, result.assembly);
+    const engineeringDecision = candidateDecision || engineeringBlock(result.assembly);
+    if (engineeringDecision) {
+      updateProcessTrace("build", "完成", "CAD 候选已构建");
+      updateProcessTrace("validate", engineeringDecision === "hold" ? "已停止" : "失败", "工程审查详见统一报告");
+      return;
+    }
     const buildStatus = result.assembly?.status === "done" ? "完成" : result.assembly?.status === "building" ? "进行中" : "失败";
     updateProcessTrace("build", buildStatus, result.assembly?.status || "CAD 规划与构建完成");
     const geometryPassed = geometryAcceptanceState(result.assembly).passed;
     updateProcessTrace("validate", geometryPassed ? "完成" : "失败", geometryPassed ? "BREP/STEP 几何验收通过" : "几何验收仍有阻断问题");
     updateProcessTrace("deliver", geometryPassed ? "进行中" : "失败", geometryPassed ? "等待视觉审查与自动改进" : "等待几何修复");
     if (result.assembly?.id && ["done", "validation_failed"].includes(result.assembly.status)) {
+      const request = result.fbsAnalysis?.verificationSupplement ? result.fbsAnalysis.requirements : message || "根据参考图片建模";
       let reviewResult;
       if (trainingRequested) {
-        await runTrainingLoop({ request: message || "根据参考图片建模", assembly: result.assembly });
-      } else await runAutomaticReviewLoop({ request: message || "根据参考图片建模", assembly: result.assembly });
+        await runTrainingLoop({ request, assembly: result.assembly });
+      } else await runAutomaticReviewLoop({ request, assembly: result.assembly });
       reviewResult = state.currentVisualReview;
       if (dualAcceptancePassed(reviewResult)) updateProcessTrace("deliver", "完成", "几何与视觉验收均通过");
       else if (reviewResult?.recommendedNextAction === "ask_user") updateProcessTrace("deliver", "已停止", "等待后期尺寸、约束或人工确认");
@@ -591,14 +604,21 @@ async function compareKernels() {
   } finally { setBusy(els.compareKernelsBtn, false); }
 }
 
-function renderUnifiedReview(report) {
+function renderUnifiedReview(report, assembly = null) {
   state.currentUnifiedReview = report;
   state.nativeEditProposal = null;
   els.unifiedReviewPanel.hidden = false;
-  const statusLabel = { pass: "通过", fail: "未通过", pending: "待补充审查" };
+  const statusLabel = { pass: "通过", fail: "未通过", hold: "待确认", pending: "待补充审查" };
   const decision = report.review || {};
+  const currentRevision = assembly?.currentRevision || report.reviewRevisionId || report.revisionId;
+  const candidate = state.engineeringCandidate;
+  const candidateReport = candidate && candidate.currentRevision === currentRevision && candidate.validationReport.assemblyId === (assembly?.id || report.assemblyId)
+    ? candidate.validationReport : null;
   els.unifiedReviewPanel.innerHTML = `<h2>统一审查 · BRep + 视觉：${escapeHtml(statusLabel[report.status || decision.geometryDecision] || "证据不足")}</h2>`
+    + (candidateReport ? `<p>当前生效修订 ${escapeHtml(currentRevision)}</p>` : "")
     + `<p>几何：${escapeHtml(statusLabel[decision.geometryDecision] || "未知")} · 视觉：${escapeHtml(statusLabel[decision.visualDecision] || "待检查")} · 完整交付：${escapeHtml(statusLabel[decision.deliveryDecision] || "待检查")}</p>`
+    + renderEngineeringVerification(report.engineeringVerification, statusLabel)
+    + (candidateReport ? `<section><h3>修改候选 ${escapeHtml(candidateReport.revisionId)} · 未生效</h3>${renderEngineeringVerification(candidateReport.engineeringVerification, statusLabel)}</section>` : "")
     + `<p>阻断问题 ${Number(report.blockingErrorCount || 0)} · 警告 ${Number(report.summary?.warnings || 0)}。${decision.cache ? `${decision.cache.hit ? "复用已验证证据" : "生成统一报告"}，内容校验与报告处理 ${Number(decision.cache.durationMs).toFixed(2)} ms。` : ""}</p>`
     + `<p>证据来自构建时的内核检查；重新审查核对参数计划与文件 SHA-256，内容变化会阻止复用。</p>`
     + (report.reviewStages || []).map(stage => `<p>${escapeHtml(stage.stage)}：${escapeHtml(stage.status)}</p>`).join("")
@@ -614,6 +634,32 @@ function renderUnifiedReview(report) {
     link.textContent = "下载统一审查报告"; els.unifiedReviewPanel.append(link);
   }
   if (state.currentAssembly?.engine === "nvidia-usd-brep") renderNativeReviewEditor();
+}
+
+function renderEngineeringVerification(report, statusLabel) {
+  if (!report) return "";
+  const label = (decision) => escapeHtml(decision === "not_requested" ? "未要求" : statusLabel[decision] || "待确认");
+  const number = (value) => Number(value.toPrecision(6));
+  const claims = [...(report.verification?.claims || []), ...(report.validation?.claims || [])].map((item) => {
+    const evidence = item.evidence || {};
+    let detail = "";
+    if (Array.isArray(evidence.dimensionsMm) && evidence.dimensionsMm.every(Number.isFinite) && Array.isArray(evidence.limitMm) && evidence.limitMm.every(Number.isFinite)) {
+      detail = `BRep 实测 ${evidence.dimensionsMm.map(number).join(" × ")} mm，上限 ${evidence.limitMm.map(number).join(" × ")} mm`;
+    } else if (Array.isArray(evidence.interval) && evidence.interval.every(Number.isFinite) && Number.isFinite(evidence.limit)) {
+      detail = `计算区间 ${evidence.interval.map(number).join("–")} ${evidence.unit}，上限 ${number(evidence.limit)} ${evidence.unit}`;
+    } else if (evidence.eligible?.length && Number.isFinite(evidence.limitMm)) {
+      detail = `适用试验 ${evidence.eligible.length} 条，位移上限 ${number(evidence.limitMm)} mm`;
+    }
+    const action = item.nextAction || (item.decision === "fail" ? "修改方案后复验。" : "");
+    const sources = report.source === "fbs" && Array.isArray(item.sourceIds) && item.sourceIds.length ? `FBS ${item.sourceIds.join(" / ")}` : "";
+    return `<li>${[escapeHtml(item.id), label(item.decision), escapeHtml(detail), escapeHtml(action), escapeHtml(sources)].filter(Boolean).join(" · ")}</li>`;
+  });
+  const supplement = report.source === "fbs" && report.decision === "hold"
+    && report.verification?.claims?.some(item => item.reason === "engineering_inputs_missing");
+  return `<p><strong>${report.source === "fbs" ? "FBS 工程判定" : "工程判定"} ${label(report.decision)}</strong> · 设计要求 ${label(report.verification?.decision)} · 实际工况 ${label(report.validation?.decision)}</p>`
+    + (claims.length ? `<ul>${claims.join("")}</ul>` : report.nextAction ? `<p>${escapeHtml(report.nextAction)}</p>` : "")
+    + (supplement ? "<p>在本会话回复「补充验收：…」复验候选。</p>" : "")
+    + (report.decision === "hold" && report.designDigest ? `<p>设计摘要 <code class="engineering-design-digest">${escapeHtml(report.designDigest)}</code></p>` : "");
 }
 
 function renderNativeReviewEditor() {
@@ -711,6 +757,7 @@ function resetChat() {
   state.conversationId = crypto.randomUUID();
   state.messages = [];
   state.currentAssembly = null;
+  state.engineeringCandidate = null;
   state.currentPlan = null;
   state.activePartId = null;
   state.activeFeatureId = null;
@@ -1152,6 +1199,10 @@ function updateAssembly(assembly) {
     clearGeneratedPreview(assembly.status === "error" ? "本次装配生成失败" : "正在构建新的装配预览...");
   }
   state.currentAssembly = assembly;
+  const candidate = state.engineeringCandidate;
+  if (candidate && (candidate.currentRevision !== assembly.currentRevision || candidate.validationReport.assemblyId !== assembly.id)) {
+    state.engineeringCandidate = null;
+  }
   if (assembly.engine === "nvidia-usd-brep" && assembly.plan) {
     state.currentPlan = assembly.plan;
     state.nativePart = assembly.plan;
@@ -1192,7 +1243,12 @@ function updateAssembly(assembly) {
     compatibility: "STL/GLB 用于快速预览；装配能力处于第二阶段"
   };
   renderLatentStatus(assembly.latentLearning);
-  els.renderState.textContent = statusText(assembly.status);
+  if (state.engineeringCandidate) {
+    const decision = state.engineeringCandidate.validationReport.engineeringVerification.decision;
+    els.renderState.textContent = `原版本 · 修改${decision === "hold" ? "待确认" : "未达标"}`;
+  } else {
+    els.renderState.textContent = engineeringBlock(assembly) === "hold" ? "模型已生成，工程证据待确认" : statusText(assembly.status);
+  }
   els.log.classList.toggle("error", assembly.status === "error");
   els.log.textContent = assembly.error || JSON.stringify({
     assembly: assembly.name,
@@ -1208,7 +1264,9 @@ function updateAssembly(assembly) {
   setDownload(els.stepLink, assembly.stepUrl);
   state.usdExportTarget = assembly;
   els.unifiedReviewBtn.disabled = !assembly.id;
-  if (assembly.validation?.review) renderUnifiedReview(assembly.validation);
+  if (assembly.validation?.review || assembly.validation?.engineeringVerification || state.engineeringCandidate) {
+    renderUnifiedReview(assembly.validation || {}, assembly);
+  }
   setDownload(els.usdBrepLink, assembly.usdBrepUrl);
   setDownload(els.kernelCodeLink, assembly.codeUrl);
   els.modelKernel.textContent = `本次模型：${assembly.engine || "cadquery"}`;
@@ -1608,8 +1666,21 @@ async function improveFromVisualReview({ rethrow = false, reReview = true } = {}
   }
 }
 
+function engineeringBlock(assembly) {
+  const report = assembly?.validation || assembly?.validationReport;
+  const decision = report?.engineeringVerification?.decision;
+  const geometryPassed = report?.review?.geometryDecision === "pass"
+    || (!report?.review && report?.valid === true && Number(report.blockingErrorCount || 0) === 0);
+  return geometryPassed && (decision === "hold" || decision === "fail") ? decision : null;
+}
+
 async function ensureGeometryAcceptance(assembly) {
   if (!assembly || assembly.status !== "validation_failed") return assembly;
+  const engineeringDecision = engineeringBlock(assembly);
+  if (engineeringDecision) {
+    els.visualImproveStatus.textContent = "工程审查需要处理，详见统一审查报告。";
+    return null;
+  }
   updateProcessTrace("validate", "进行中", "按 BREP 报告自动重建修复");
   els.visualImproveStatus.textContent = "几何验收未通过，正在先按 BREP 报告自动重建修复...";
   const repaired = await api("/api/assembly/repair", {
@@ -1619,6 +1690,11 @@ async function ensureGeometryAcceptance(assembly) {
   if (repaired.assembly) {
     await updateAssembly(repaired.assembly);
     await loadParametricWorkspace();
+  }
+  if (engineeringBlock(repaired.assembly)) {
+    updateProcessTrace("validate", "已停止", "几何验收通过，等待处理工程证据");
+    els.visualImproveStatus.textContent = "工程审查需要处理，详见统一审查报告。";
+    return null;
   }
   if (!repaired.ok || repaired.assembly?.status !== "done") {
     updateProcessTrace("validate", "失败", "几何自动修复仍未通过");

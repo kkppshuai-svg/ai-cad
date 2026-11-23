@@ -1,6 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { composeAssemblyValidationReport } from "./assembly-validation-report.js";
+import { canPromoteRevision } from "./cad-validation.js";
+import { attachUnifiedDecision } from "./review-policy.js";
 
 function cleanPart(partId = "base") {
   return {
@@ -45,6 +47,20 @@ test("a clean build produces a promotable report with an empty repair queue", ()
   assert.equal(report.assemblyId, "asm-1");
   assert.equal(report.revisionId, "rev-0001");
   assert.equal(report.repairQueue.active.length, 0);
+});
+
+test("missing engineering evidence blocks scoped delivery even when geometry and visuals pass", () => {
+  const revisionId = "rev-0001";
+  const report = composeAssemblyValidationReport({
+    plan: { ...plan, engineeringVerification: { requirements: [{ id: "limit", kind: "envelope", maxMm: [11, 11, 11] }] } },
+    buildSummary: cleanBuildSummary(),
+    revisionId
+  });
+  const delivery = attachUnifiedDecision(report, { revisionId, visualReview: { revisionId, status: "pass" } });
+  assert.equal(delivery.review.geometryDecision, "pass");
+  assert.equal(delivery.review.engineeringDecision, "hold");
+  assert.equal(delivery.review.deliveryDecision, "pending");
+  assert.equal(canPromoteRevision(delivery), false);
 });
 
 test("BREP review issues are tagged, counted, and invalidate the report", () => {

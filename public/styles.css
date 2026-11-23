@@ -302,6 +302,7 @@ button:disabled { cursor: not-allowed; opacity: .42; }
 .visual-review-actions { display: flex; align-items: center; justify-content: flex-end; gap: 6px; }
 .visual-review-actions button { padding: 5px 8px; font-size: 9px; }
 .visual-review-head h2, .visual-review-panel p { margin: 0; }
+.engineering-design-digest { overflow-wrap: anywhere; }
 .visual-review-head h2 { font-size: 11px; }
 .visual-review-head span { color: var(--accent); font-family: "SFMono-Regular", "JetBrains Mono", Consolas, monospace; font-size: 9px; }
 .visual-review-findings, .joints-list { display: grid; gap: 5px; }

@@ -2,7 +2,8 @@ import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 
 import { restoreJobFromRevisionState } from "./parametric-api.js";
-import { getCurrentRevision, loadRevisionState } from "./revision-store.js";
+import { engineeringPromotionBlock } from "./cad-validation.js";
+import { getCurrentRevision, listRevisions, loadRevisionState } from "./revision-store.js";
 import { restoreNativeJob } from "./native-revisions.js";
 
 export async function restoreAssemblyJob(revisionRoot, assemblyId) {
@@ -13,18 +14,26 @@ export async function restoreAssemblyJob(revisionRoot, assemblyId) {
     return native;
   }
   const current = await getCurrentRevision(revisionRoot, assemblyId);
-  if (!current?.id) return null;
-  const state = await loadRevisionState(revisionRoot, assemblyId, current.id, { allowLegacyStateChecksum: true });
+  const revision = current || (await listRevisions(revisionRoot, assemblyId)).find(({ failure }) => engineeringPromotionBlock(failure?.validationReport));
+  if (!revision) return null;
+  const state = await loadRevisionState(revisionRoot, assemblyId, revision.id, { allowLegacyStateChecksum: Boolean(current) });
   const job = {
     id: assemblyId,
     status: "done",
-    createdAt: current.createdAt || null,
-    completedAt: current.promotedAt || current.updatedAt || null,
+    createdAt: revision.createdAt || null,
+    completedAt: revision.promotedAt || revision.updatedAt || null,
     outputDir: path.join(revisionRoot, assemblyId),
     plan: state.plan,
     parts: []
   };
-  restoreJobFromRevisionState(job, current.id, state);
+  restoreJobFromRevisionState(job, revision.id, state);
+  if (!current) {
+    delete job.currentRevision;
+    job.pendingRevision = revision.id;
+    job.status = "validation_failed";
+    job.revisionDisposition = engineeringPromotionBlock(job.validationReport);
+    return job;
+  }
   job.visualReview = await restoreVisualReview(revisionRoot, assemblyId);
   return job;
 }

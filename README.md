@@ -6,6 +6,8 @@
 
 通过文字或参考图创建和修改 CAD 模型，在三维视图中检查结果，并随修订保留审查证据。
 
+AI-CAD 把 FBS 的行为目标连到工程验证。系统从用户需求中提取明确的验收条件，复用本次 CadQuery 构建的几何事实，给出通过、不通过或待确认。证据不足时，报告会列出需要补充的信息。[自主工程验证与运行示例](docs/autonomous-engineering-verification.md)
+
 ![AI-CAD 行星减速机工作台示例](docs/assets/examples/planetary-reducer.png)
 
 *研发过程截图。[更多示例](docs/examples.md)*

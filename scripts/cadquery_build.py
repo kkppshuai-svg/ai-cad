@@ -1395,10 +1395,14 @@ def main():
         {"stage": "step_roundtrip", "status": "pass" if step_roundtrip["valid"] else "fail"},
     ]
     validation_payload["blockingErrorCount"] += len(step_roundtrip["issues"])
+    if "engineeringVerification" in plan:
+        from engineering_verification import evaluate_manifest
+        validation_payload["engineeringVerification"] = evaluate_manifest(plan, geometry_reports)
     with open(geometry_validation_path, "w", encoding="utf-8") as handle:
         json.dump(validation_payload, handle, ensure_ascii=False, indent=2)
         handle.write("\n")
 
+    # The server reads this pipe as UTF-8 even when the Python locale differs.
     print(json.dumps({
         "engine": "cadquery",
         "builderVersion": BUILDER_VERSION,
@@ -1413,7 +1417,7 @@ def main():
         "geometryValidation": validation_payload,
         "parts": part_outputs,
         "relations": plan.get("relations", []),
-    }, ensure_ascii=False))
+    }))
 
 
 if __name__ == "__main__":

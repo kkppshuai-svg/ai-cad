@@ -1,5 +1,7 @@
 # 验证与自动修复
 
+几何、装配和已启用的工程验收共用候选修订门禁。设计要求的核查、真实使用需求的确认及请求方式见[自主工程验证](autonomous-engineering-verification.md)。
+
 ## 1. 成功定义
 
 候选计划必须实际构建为 BREP，并通过验证门禁，才能晋级为当前修订。“模型返回 JSON”“生成预览”或“给出修复建议”都不构成成功。
@@ -9,6 +11,8 @@ validationReport.blockingErrorCount === 0
 validationReport.valid === true
 validationReport.review.geometryDecision === "pass"
 ```
+
+启用工程验收时，还要求 `validationReport.engineeringVerification.decision === "pass"`。
 
 错误（error）阻断晋级；警告（warning）保留用于工程决策；信息（info）记录预期接触等非阻断事实。
 
@@ -44,6 +48,8 @@ validationReport.review.geometryDecision === "pass"
 ```
 
 每个 issue 应包含稳定 `code`、`severity`、`stage` 和人可读 `message`；能定位时还应包含 `partId`、`featureId`、相关零件或测量证据。
+
+启用工程验收后，报告的 `engineeringVerification` 记录产品核查、使用确认及总决策。`hold` 表示证据不足、冲突或超出方法适用范围，`fail` 表示已有证据表明超限。两者均阻止当前候选晋级，可查看逐项原因与下一步。
 
 ## 4. 尺寸规则
 
@@ -91,6 +97,7 @@ validationReport.review.geometryDecision === "pass"
 - 达到最大修复轮次；
 - 无安全修复方案；
 - 修复候选违反不变量；
+- 几何通过，工程验收待确认或不通过；
 - 用户停止当前 AI 规划。
 
 失败终止时应返回 `validation_failed`、最新报告、修复审计和可用预览；不得把错误静默降级为成功。

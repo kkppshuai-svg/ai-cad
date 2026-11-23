@@ -2,7 +2,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { analyzeAssemblyConstraints } from "./assembly-constraints.js";
 import { composeAssemblyValidationReport } from "./assembly-validation-report.js";
-import { canPromoteRevision, proposeDeterministicRepairs } from "./cad-validation.js";
+import { canPromoteRevision, engineeringPromotionBlock, proposeDeterministicRepairs } from "./cad-validation.js";
 import { applyEditPatch } from "./parametric-edit.js";
 import { collectRevisionArtifactPaths } from "./parametric-api.js";
 import { normalizeParametricPlan } from "./parametric-plan.js";
@@ -35,7 +35,9 @@ export function buildCadQueryManifest(plan, outputDir) {
     joints: plan.joints || [],
     constraints: plan.constraints || [],
     intendedContacts: plan.intendedContacts || [],
-    parts: plan.parts
+    repairActions: plan.repairActions || [],
+    parts: plan.parts || [],
+    ...(Object.hasOwn(plan, "engineeringVerification") ? { engineeringVerification: plan.engineeringVerification } : {})
   };
 }
 
@@ -112,6 +114,18 @@ export async function buildValidatedAssembly({ plan, repairContext = {}, deps })
     if (deps.bindReviewEvidence) await deps.bindReviewEvidence(job);
 
     if (!canPromoteRevision(validationReport)) {
+      const engineeringBlock = engineeringPromotionBlock(validationReport);
+      if (engineeringBlock) {
+        job.manifestPath = manifestPath;
+        job.revisionDisposition = engineeringBlock;
+        const delivery = { ...revisionDeliveryState(job), status: "validation_failed" };
+        await writeRevisionState(assemblyDir, id, candidate.id, {
+          plan: normalizedPlan, validationReport, constraintReport, buildSummary,
+          parts: job.parts, repairAudit: job.repairAudit, delivery,
+          artifacts: collectRevisionArtifactPaths(buildSummary, delivery)
+        });
+        throw Object.assign(new Error(engineeringBlock.message), { code: engineeringBlock.code });
+      }
       const repairs = proposeDeterministicRepairs(validationReport, normalizedPlan);
       const attempt = Number(repairContext.attempt || 0);
       if (attempt < MAX_DETERMINISTIC_REPAIR_ATTEMPTS && (repairs.patch.operations.length || repairs.actions.length)) {
@@ -169,7 +183,7 @@ export async function buildValidatedAssembly({ plan, repairContext = {}, deps })
   } catch (error) {
     if (candidate) {
       try {
-        await markRevisionFailed(assemblyDir, id, candidate.id, { code: "BUILD_FAILED", message: error.message || String(error), validationReport: job.validationReport || null });
+        await markRevisionFailed(assemblyDir, id, candidate.id, { code: error.code || "BUILD_FAILED", message: error.message || String(error), validationReport: job.validationReport || null });
       } catch {
         // Preserve original build error.
       }

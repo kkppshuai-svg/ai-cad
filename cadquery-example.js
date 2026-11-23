@@ -6,6 +6,9 @@ export async function saveCadqueryExample({ plan, directory, builderPath }) {
   await mkdir(directory, { recursive: true });
   await copyFile(builderPath, path.join(directory, "cadquery_build.py"));
   await copyFile(path.join(path.dirname(builderPath), "brep_review_core.py"), path.join(directory, "brep_review_core.py"));
+  if (Object.hasOwn(plan, "engineeringVerification")) {
+    await copyFile(path.join(path.dirname(builderPath), "engineering_verification.py"), path.join(directory, "engineering_verification.py"));
+  }
   const script = `import json
 from pathlib import Path
 

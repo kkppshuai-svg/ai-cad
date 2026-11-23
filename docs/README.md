@@ -1,6 +1,6 @@
 # AI-CAD 文档中心
 
-[English overview](../README.md) · [中文首页](../README.zh-CN.md) · [English setup](getting-started.en.md)
+[中文首页](../README.md) · [English overview](../README.en.md) · [English setup](getting-started.en.md)
 
 本文档集描述 GitHub 主分支所对应的工程研发基线。文档以仓库当前实现为准；规划中的能力必须明确标注，不能写成已交付功能。
 
@@ -15,6 +15,7 @@
 7. [FBS 系统规范](fbs-system.md)：理解 FBS 如何进入 CAD 计划和 BREP 验收。
 8. [参数化编辑](parametric-editing.md)：实现稳定特征 ID 和局部修订。
 9. [开发与测试](development.md)：修改代码、运行回归和维护文档。
+10. [自主工程验证](autonomous-engineering-verification.md) · 验收条件、证据不足的处理与可复现实验。
 
 ## 当前双内核与联合审查
 

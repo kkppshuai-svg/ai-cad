@@ -75,6 +75,10 @@ X-AI-CAD-Token: <requestToken>
 
 `conversationId` 缺失时服务器生成新 ID。`images` 最多 3 张，支持 PNG、JPEG、WebP；文字说明优先于图片推断。
 
+CadQuery 会从 `message` 中识别由 FBS 追踪的包络、挠度或应力要求。可在请求顶层提交 `engineeringVerification` 覆盖本次自动生成的验收条件。对象包含 `requirements` 及所需的工况或试验数据。读取 `assembly.validation.engineeringVerification` 查看结论及逐项证据。自动生成的报告标为 `source: "fbs"`。任务可通过 `verification.claims[].sourceIds` 追溯来源，缺项记录在相应任务的 `evidence.missingInputs`。[请求示例与字段](autonomous-engineering-verification.md)
+
+初次候选的自动工程验证返回 `hold` 时，保留同一 `conversationId`，再次调用 `/api/chat`。在 `message` 中用 `补充验收：` 或 `补充验收条件：` 开头，后面写入报告所需的工况或限值。服务复用保存的特征计划进行复验。
+
 ### 停止当前规划
 
 ```json
@@ -100,7 +104,7 @@ X-AI-CAD-Token: <requestToken>
 }
 ```
 
-也可用 `{ "editPatch": { ... } }` 包装。若 `baseRevision` 不是当前修订，返回 409 和 `STALE_REVISION`。
+也可用 `{ "editPatch": { ... } }` 包装。若 `baseRevision` 已过期，返回 409 和 `STALE_REVISION`。CadQuery 编辑默认继承当前修订的工程验收条件。需要修改条件和证据时，可在请求顶层提供完整 `engineeringVerification`，并保留有效的 `editPatch`。读取 `revision.validationReport.engineeringVerification` 获取此次候选的工程结论。
 
 ### 回退修订
 
@@ -120,6 +124,8 @@ X-AI-CAD-Token: <requestToken>
 ```
 
 只有状态为 `validation_failed` 的任务可使用该路由；其他状态返回 409。
+
+复验工程验收时，在同一请求的顶层提交完整的 `engineeringVerification`，包含原需求和新增证据。服务沿用保留的候选计划构建。候选仍被阻断时，返回 422 及可用预览与验证报告。
 
 ## 5. 状态码
 

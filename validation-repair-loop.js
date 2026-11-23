@@ -1,3 +1,5 @@
+import { engineeringPromotionBlock } from "./cad-validation.js";
+
 export async function runAssemblyValidationRepairLoop({ initialPlan, build, repair, repairFallback, onRepair, maximumRepairs = 3, returnPreviewOnFailure = false }) {
   if (typeof build !== "function") throw new TypeError("build is required");
   if (typeof repair !== "function") throw new TypeError("repair is required");
@@ -7,7 +9,7 @@ export async function runAssemblyValidationRepairLoop({ initialPlan, build, repa
     try {
       return await build(plan, attempt);
     } catch (error) {
-      if (!error?.validationReport || attempt >= maximumRepairs) {
+      if (!error?.validationReport || engineeringPromotionBlock(error.validationReport) || attempt >= maximumRepairs) {
         if (returnPreviewOnFailure && error?.previewAssembly) return error.previewAssembly;
         throw error;
       }

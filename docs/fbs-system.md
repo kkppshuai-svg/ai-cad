@@ -5,28 +5,27 @@
 | 文档状态 | 工程研发基线 |
 | 合同版本 | `ai-cad-concept-cad-contract-v1` |
 | FBS 数据版本 | `ai-cad-fbs-analysis-v1` |
-| 适用分支 | `feature/fbs-system` |
-| 核心实现 | `fbs-workflow.js`、`prompt-contract.js`、`cad-validation.js`、`server.js` |
+| 核心实现 | `fbs-workflow.js`、`fbs-verification.js`、`prompt-contract.js`、`cad-validation.js`、`server.js` |
 
 ## 1. 目的与范围
 
 本系统在自然语言需求与可执行 CAD 特征计划之间建立一条可追溯的概念链：
 
 ```text
-需求 R → 功能 F → 行为 Be → 结构 S → CAD 特征与参数 → BREP 验证
+需求 R → 功能 F → 行为 Be → 结构 S → CAD 特征与参数 → 验证 V
 ```
 
-FBS 的职责是解释“为什么设计成这样”，并把关键意图转换成可测量的验收条件。CAD 规划的职责是解释“具体怎样建模”。两者通过同一个 Concept-CAD 合同传递，不进行第二次概念推导，也不在 CAD 计划中重复 FBS 的论证文本。
+FBS 记录设计意图与结构选择，CAD 规划将结构落实为可编辑特征。工程验证从用户消息提取目标、限值和工况，并把任务关联到对应的 FBS 行为或验收条目。三者基于同一份 Concept-CAD 合同与构建证据。
 
-当前版本面向工程研发，不提供面向终端用户的模式切换。系统不能替代载荷计算、材料验证、有限元分析、加工验证或样件试验。
+当前工程验证适用于 CadQuery 的单零件包络和矩形悬臂梁静载。工程验证的工况范围和复验方式见[自主工程验证](autonomous-engineering-verification.md)。
 
 ## 2. 设计原则
 
 1. **单一概念源**：一次新建设计只产生一份 `concept`；后续局部尺寸修改复用该概念链。
 2. **当前输入优先**：用户当前消息是设计意图的权威来源。历史对话、检索样本、latent/VAE 结果不得覆盖明确尺寸、对象或功能。
 3. **语义与几何分层**：FBS 保存需求、功能、行为、结构及来源关系；CAD 计划只保存零件、特征、参数、位姿和测量项。
-4. **验收必须可测**：关键验收条件通过 `measurementId` 映射到稳定的 CAD 测量项。
-5. **失败不得晋级**：存在阻断错误或未映射的 FBS 验收条件时，候选修订不能成为当前版本。
+4. **验收需要证据**：几何验收可通过 `measurementId` 映射到 CAD 测量项。受支持的行为目标可形成工程验证任务，并随结果提供来源和缺项。
+5. **验收控制晋级**：候选需要通过几何审查以及已启用的工程验收条件。
 6. **修复范围最小**：自动修复优先修改失败特征；不得静默改变功能孔径、孔中心、约束语义或零件数量。
 
 ## 3. 模块职责
@@ -34,6 +33,7 @@ FBS 的职责是解释“为什么设计成这样”，并把关键意图转换�
 | 模块 | 责任 | 不承担的责任 |
 | --- | --- | --- |
 | `fbs-workflow.js` | 规范化 R→F→Be→S 数据；生成紧凑规划摘要 | 生成几何、执行 BREP 检查 |
+| `fbs-verification.js` | 将用户明确的验收条件映射为 FBS 验证任务 | 执行 CAD 构建或力学计算 |
 | `prompt-contract.js` | 定义统一 Concept-CAD 输出合同；约束模型避免重复推导 | 持久化与几何构建 |
 | `server.js` | 管理对话状态、归档概念合同、驱动构建和修复循环 | 直接实现 CAD 内核算法 |
 | `cad-validation.js` | 合并验证证据；检查 FBS 验收映射；决定修订能否晋级 | 推断新的功能或结构概念 |
@@ -96,11 +96,13 @@ FBS 的职责是解释“为什么设计成这样”，并把关键意图转换�
 | --- | --- | --- |
 | `id` | 是 | 验收条件稳定 ID |
 | `statement` | 是 | 人可读的验收语句 |
-| `measurementId` | 对可量化条件必需 | 对应 `part.measurements` 中的稳定测量 ID |
+| `measurementId` | 对 CAD 测量项必需 | 对应 `part.measurements` 中的稳定测量 ID |
 | `tolerance` | 否 | 允许偏差，单位与对应测量一致 |
 | `sourceIds` | 否 | 产生该条件的 FBS 节点 ID |
 
 当前 `validateFbsAcceptanceCoverage` 检查的是**测量映射完整性**：若声明了 `measurementId`，但 BREP 验证报告没有同名测量项，则生成阻断错误 `FBS_ACCEPTANCE_UNMAPPED`。测量值是否满足目标范围，由几何验证器对应的尺寸规则负责。
+
+受支持的行为目标也可进入工程验证报告。比如挠度目标会使用本次 BRep 的梁尺寸和用户指定的静载工况。缺少验收限值、载荷、装夹条件或材料弹性模量时，相应任务为 `hold`，报告指出要补充的输入。显式提交的 `engineeringVerification` 优先作为本次验收合同。
 
 ## 5. 执行链路
 
@@ -109,16 +111,17 @@ FBS 的职责是解释“为什么设计成这样”，并把关键意图转换�
   ↓
 一次 AI 规划：concept(R/F/Be/S/验收) + CAD plan
   ↓
-FBS 规范化、会话保存、Concept-CAD 合同归档
+FBS 规范化、提取工程验证任务、归档 Concept-CAD 合同
   ↓
 CadQuery 构建 STEP/BREP
   ↓
-几何测量 + 干涉/约束/制造性验证 + FBS 验收映射检查
-  ├─ 无阻断错误 → 晋级当前修订 → 可进入 latent 学习队列
-  └─ 有阻断错误 → 确定性局部修复 / AI 最小修复 → 重建并复验
+统一报告 ← 几何测量、FBS 验收映射和工程证据判定
+  ├─ 全部通过 → 晋级当前修订 → 可进入 latent 学习队列
+  ├─ 几何错误 → 确定性局部修复 / AI 最小修复 → 重建并复验
+  └─ 工程待确认或不通过 → 保存报告与候选 → 补充证据或改动设计后复验
 ```
 
-新对话生成新的 FBS 文档。已有修订的局部编辑默认返回 `editPatch`，复用原有概念链，只改目标 CAD 特征。若用户改变了产品对象、用途或核心约束，应视为新的概念修订，而不是把旧 FBS 强行套用到新设计。
+新对话生成新的 FBS 文档。已有修订的局部编辑默认返回 `editPatch`，复用原有概念链和验收条件。用户改变产品对象、用途或核心约束时，应发起新的概念修订。初次候选因条件不足而待确认时，在同一 CadQuery 对话发送 `补充验收：…` 可以复验该候选。
 
 ## 6. 验证与自动修复
 
@@ -127,6 +130,7 @@ CadQuery 构建 STEP/BREP
 - `validationReport.blockingErrorCount === 0`；
 - `validationReport.valid !== false`；
 - 每个声明了 `measurementId` 的 FBS 验收条件均能在 BREP 测量结果中找到；
+- 已启用工程验证时，`validationReport.engineeringVerification.decision === "pass"`；
 - 构建产物、零件几何报告及计划零件 ID 相互一致。
 
 修复分两层执行：
@@ -159,6 +163,7 @@ ${AICAD_FBS_DIR:-aicad-fbs-experiments}/<experimentId>-concept-cad.json
 
 ```bash
 node --test fbs-workflow.test.mjs
+node --test fbs-verification.test.mjs
 node --test cad-validation.test.mjs
 node --test prompt-contract.test.mjs
 ```

@@ -23,3 +23,15 @@ test('archived examples rebuild the actual feature tree with the production buil
   assert.ok(result.valid);
   assert.ok(Math.abs(result.volume - (800 - Math.PI * 4 * 4)) < 1e-6);
 });
+
+test('examples with engineering requirements include the production evidence evaluator', async t => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'aicad-example-'));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const builderPath = path.resolve('scripts/cadquery_build.py');
+  const engineeringVerification = { requirements: [{ id: 'size', kind: 'envelope', maxMm: [20, 10, 4] }] };
+  await saveCadqueryExample({ plan: { engineeringVerification }, directory, builderPath });
+  const evaluator = 'engineering_verification.py';
+  assert.equal(await readFile(path.join(directory, evaluator), 'utf8'), await readFile(path.join(path.dirname(builderPath), evaluator), 'utf8'));
+  const plan = JSON.parse(await readFile(path.join(directory, 'feature-plan.json'), 'utf8'));
+  assert.deepEqual(plan.engineeringVerification, engineeringVerification);
+});

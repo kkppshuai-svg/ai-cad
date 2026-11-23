@@ -96,5 +96,11 @@ export function composeAssemblyValidationReport({
   report.repairQueue = buildRepairWorkQueue(report, { maximumBatchSize });
   report.assemblyId = assemblyId;
   report.revisionId = revisionId;
+  if (Object.hasOwn(plan, "engineeringVerification")) {
+    const evidence = geometryValidation.engineeringVerification;
+    report.engineeringVerification = ["pass", "hold", "fail"].includes(evidence?.decision)
+      ? structuredClone(evidence)
+      : { decision: "hold", needsHumanReview: true, nextAction: "使用支持工程验证的构建流程生成证据。" };
+  }
   return attachUnifiedDecision(report, { engine: buildSummary.engine || "cadquery", revisionId });
 }
