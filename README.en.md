@@ -17,6 +17,7 @@ Build and edit CAD models from text or reference images, inspect the result in 3
 - Combined BRep and visual review, artifact integrity checks, and validation gates.
 - Backend-specific precise USD or STEP exports, preview meshes, and optional FreeCAD integration.
 - Optional offline reinforcement learning for bounded dimension edits, rewarded by CAD reconstruction and engineering verification. [Training and benchmark (中文)](docs/reinforcement-learning.md)
+- Mounting-plate exploration checks pin clearance through motion and washer seating at travel endpoints. Logged exploration and ratings feed candidate training, with policy activation gated by a held-out evaluation. [Verification and learning diagram (中文)](README.md#从需求到验证和策略更新)
 
 **Stack:** Node.js · Three.js · Python · CadQuery/OpenCascade · NVIDIA USD BRep (optional).
 
