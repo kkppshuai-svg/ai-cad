@@ -111,6 +111,7 @@ DeepSeek 未配置 key，或图片请求遇到无视觉能力模型时，系统�
 | `AICAD_CADQUERY_SCRIPT_DIR` | `cadquery底层脚本库/` |
 | `AICAD_RATING_DIR` | `aicad人工评分/` |
 | `AICAD_TRAINING_DIR` | `aicad训练记录/` |
+| `AICAD_RL_DIR` | `workspace/rl/`，存放安装板探索与评分事件、运行时权重及训练评估 |
 | `AICAD_FBS_DIR` | `aicad-fbs-experiments/` |
 | `AICAD_EXCELLENT_CADQUERY_DIR` | `人工优秀代码库/` |
 | `AICAD_LATENT_RUNTIME_DIR` | `workspace/latent-learning/` |

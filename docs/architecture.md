@@ -6,20 +6,23 @@ AI-CAD 用参数化计划表达设计、用 BRep 构建提供几何证据，并�
 
 ## 2. 逻辑链路
 
-```text
-设计需求或编辑指令 + 可选工程验收条件
-  ↓
-生成或编辑参数化候选计划 → 根据 FBS 行为和验收条目转换工程验证任务
-  ↓
-一次构建 → BRep、几何测量、约束和 STEP 往返结果
-  ↓
-统一报告 ← 已启用的工程验收使用本次 BRep 证据、计算和试验记录
-  ├─ 通过 → 晋级当前修订 → 预览、导出和学习队列
-  ├─ 几何错误 → 现有局部修复流程
-  └─ 工程待确认／不通过 → 保留证据与后续动作，候选暂缓晋级
+```mermaid
+flowchart TD
+    intent["设计要求或编辑指令"] --> plan["生成或编辑特征计划"]
+    intent --> fbs["关联 FBS 行为与工程验收任务"]
+    plan --> build["构建并提取 BRep 几何证据"]
+    build --> review{"统一报告与修订门禁"}
+    fbs --> review
+    evidence["适用的计算与试验记录"] --> review
+    review -->|"通过"| revision["晋级修订、导出与预览"]
+    review -->|"几何错误"| repair["局部修复"]
+    repair --> build
+    review -->|"工程不通过或待确认"| hold["保存报告，改方案或补证据后复验"]
 ```
 
-每次候选构建只提取一份几何事实。工程核查与实际用途确认各自给出逐项证据，汇总决定与现有几何门禁共同控制晋级。支持范围和调用方式见[自主工程验证](autonomous-engineering-verification.md)。
+工程核查与实际用途确认各自给出逐项证据，与几何门禁共同控制晋级。支持范围和调用方式见[自主工程验证](autonomous-engineering-verification.md)。
+
+安装板探索用活动策略安排两种结构的试建顺序，按实际夹具证据筛选后，将所选计划交给同一套构建和修订门禁。反馈训练在后台运行。候选策略通过留出回归后才有资格启用。VAE 样本学习保留自己的队列。[策略更新示意图](../README.md#从需求到验证和策略更新) · [强化学习运行说明](reinforcement-learning.md)
 
 ## 3. 权威数据
 
@@ -32,6 +35,7 @@ AI-CAD 用参数化计划表达设计、用 BRep 构建提供几何证据，并�
 | 工程验收条件 | 从用户消息提取并关联 FBS，或由请求显式指定 `engineeringVerification` | 随参数化计划和修订保存，显式条件优先 |
 | 验收状态 | `ai-cad-validation-report-v1` | 记录几何状态及已启用的工程决策；工程子报告保留需求、证据及原因 |
 | FBS 追溯 | `ai-cad-concept-cad-contract-v1` 归档 | 后续规划只消费紧凑摘要 |
+| 安装板活动策略 | `workspace/rl/mount-active.json`，默认使用 `models/mount-active.json` | 仅在留出评估达到更新门槛后替换活动权重 |
 
 ## 4. 模块边界
 
@@ -58,6 +62,7 @@ AI-CAD 用参数化计划表达设计、用 BRep 构建提供几何证据，并�
 | `scripts/cadquery_build.py` | CadQuery/OCP 几何构建与 STEP 回归验证，提供已构建 BRep 的事实 |
 | `scripts/engineering_verification.py` | 按需求选择工程检查，根据证据充分性给出逐项决策 |
 | `scripts/cad_rl.py`、`cad_rl_env.py`、`cad_rl_policy.py` | 离线、有界的 CAD 编辑策略训练、对照评估及已核查候选导出；不写修订 |
+| `scripts/structure_rl.py`、`mount_learning.py` | 提取安装结构、验证夹具几何、执行探索及带留出门禁的反馈训练 |
 | `cad-latent-training.js` | 已通过样本的队列、数据集和 VAE 训练连续性 |
 | `public/` | 对话、工程预览、特征树、审查和修订 UI |
 
@@ -79,7 +84,7 @@ AI-CAD 用参数化计划表达设计、用 BRep 构建提供几何证据，并�
 | `assemblies/` | 装配任务、修订、产物和验证证据 | 忽略 |
 | `workspace/uploads/` | 对话参考图 | 忽略 |
 | `workspace/latent-learning/` | latent/VAE 运行数据 | 忽略 |
-| `workspace/rl/` | 可复现的强化学习 checkpoint、评估与候选报告 | 忽略 |
+| `workspace/rl/` | 探索与评分事件、运行时活动权重、候选权重及评估报告 | 忽略 |
 | `renders/` | 预览渲染 | 忽略 |
 | `logs/` | 服务日志 | 忽略 |
 | `standard-parts-cache/` | step.parts 缓存 | 忽略 |

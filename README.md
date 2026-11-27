@@ -8,13 +8,28 @@
 
 AI-CAD 把 FBS 的行为目标连到工程验证。系统从用户需求中提取明确的验收条件，复用本次 CadQuery 构建的几何事实，给出通过、不通过或待确认。证据不足时，报告会列出需要补充的信息。[自主工程验证与运行示例](docs/autonomous-engineering-verification.md)
 
-工程验证也可作为强化学习的奖励信号。离线策略通过实际 BRep 重建学习选择尺寸编辑，并在未见过的算例上和固定规则对比。[强化学习训练、评估与候选导出](docs/reinforcement-learning.md)
+离线尺寸策略使用 BRep 重建和工程验收结果计算奖励，并在留出算例上与固定规则比较。[尺寸策略训练与评估](docs/reinforcement-learning.md)
 
-安装结构策略从已评分的四孔安装板和双调节槽样本提取候选类型，用销的全行程干涉和垫圈端点压紧面积训练结构选择。[结构训练与示例](docs/reinforcement-learning.md#从优秀结构样本学习安装方案)
+## 从需求到验证和策略更新
 
-![AI-CAD 行星减速机工作台示例](docs/assets/examples/planetary-reducer.png)
+```mermaid
+flowchart TD
+    need["设计需求"] -->|"常规 CadQuery 任务"| fbs["FBS 识别工程验收条件"]
+    need -->|"安装板探索"| explore["按活动策略排序并试建两种结构"]
+    fbs --> verify{"BRep 构建与工程验证"}
+    explore --> verify
+    verify -->|"通过"| revision["晋级当前修订"]
+    verify -->|"不通过或待确认"| report["保留证据和待补信息"]
+    explore --> feedback["探索和有效评分入库"]
+    revision -->|"人工评分关联到修订"| feedback
+    feedback -->|"新增至少 100 条"| candidate["训练候选权重"]
+    candidate --> holdout{"留出评估达到启用门槛？"}
+    holdout -->|"达到"| active["启用候选权重"]
+    holdout -->|"持平或未达到"| keep["继续使用活动权重"]
+    active -.->|"用于后续探索"| explore
+```
 
-*研发过程截图。[更多示例](docs/examples.md)*
+安装板入口对比四孔安装板和双调节槽，检查销的全行程干涉和垫圈在行程端点的有效压紧面积。一次已归档的实验完成了 100 个任务、200 次奖励更新。候选与活动策略在 32 个留出案例上均通过 20 个、总奖励持平，本次评估保留活动权重。[结构训练与运行示例](docs/reinforcement-learning.md#从优秀结构样本学习安装方案) · [系统架构](docs/architecture.md) · [工程示例与截图](docs/examples.md)
 
 ## 功能
 
