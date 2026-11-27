@@ -238,8 +238,11 @@ def mount_fixture_claim(case, requirement, located_entries):
     plate = located_entries[0]["shape"]
     try:
         pitch,count,travel,seat = checked(requirement["fixture"])
-        box = plate.val().BoundingBox()
-        if abs(box.zmax - 2) > 1e-7 or abs(box.zmin + 2) > 1e-7 or plate.faces(">Z").size() != 1:
+        top_faces, bottom_faces = plate.faces(">Z"), plate.faces("<Z")
+        if (top_faces.size() != 1 or bottom_faces.size() != 1 or
+                any(face.geomType() != "PLANE" or abs(abs(face.normalAt().z) - 1) > 1e-9
+                    or abs(face.Center().z - z) > 1e-7
+                    for face,z in [(top_faces.val(),2), (bottom_faces.val(),-2)])):
             return claim("hold", "fixture_datum_out_of_scope", action="该夹具定义要求板面位于 Z=±2 mm。")
         pins = [(x,y) for x in [-pitch/2,pitch/2][:int(count)//2] for y in [-pitch/2,pitch/2]]
         evidence = fixture_evidence(plate,pins,travel)
