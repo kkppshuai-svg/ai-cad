@@ -96,3 +96,5 @@ python -X utf8 scripts/engineering_verification.py --input workspace/aev-benchma
 ```
 
 离线输入额外包含 `design`，使用单零件 AI-CAD 计划。离线记录的 `designDigest` 取自 CLI 输出，在线试验记录的摘要取自同一候选的构建报告。CLI 的 `pass`、`fail` 与 `hold` 分别返回 0、1、2。
+
+要让策略根据核查反馈学习下一步改什么，而不是只评判给定方案，参见 [CAD 强化学习](reinforcement-learning.md)。

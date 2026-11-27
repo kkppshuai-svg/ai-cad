@@ -16,6 +16,7 @@
 8. [参数化编辑](parametric-editing.md)：实现稳定特征 ID 和局部修订。
 9. [开发与测试](development.md)：修改代码、运行回归和维护文档。
 10. [自主工程验证](autonomous-engineering-verification.md) · 验收条件、证据不足的处理与可复现实验。
+11. [CAD 强化学习](reinforcement-learning.md) · 复用工程验证训练参数编辑策略，并离线评估与导出候选。
 
 ## 当前双内核与联合审查
 

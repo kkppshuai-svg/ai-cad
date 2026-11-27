@@ -57,6 +57,7 @@ AI-CAD 用参数化计划表达设计、用 BRep 构建提供几何证据，并�
 | `revision-store.js` | 候选、失败、当前修订和回退状态 |
 | `scripts/cadquery_build.py` | CadQuery/OCP 几何构建与 STEP 回归验证，提供已构建 BRep 的事实 |
 | `scripts/engineering_verification.py` | 按需求选择工程检查，根据证据充分性给出逐项决策 |
+| `scripts/cad_rl.py`、`cad_rl_env.py`、`cad_rl_policy.py` | 离线、有界的 CAD 编辑策略训练、对照评估及已核查候选导出；不写修订 |
 | `cad-latent-training.js` | 已通过样本的队列、数据集和 VAE 训练连续性 |
 | `public/` | 对话、工程预览、特征树、审查和修订 UI |
 
@@ -78,6 +79,7 @@ AI-CAD 用参数化计划表达设计、用 BRep 构建提供几何证据，并�
 | `assemblies/` | 装配任务、修订、产物和验证证据 | 忽略 |
 | `workspace/uploads/` | 对话参考图 | 忽略 |
 | `workspace/latent-learning/` | latent/VAE 运行数据 | 忽略 |
+| `workspace/rl/` | 可复现的强化学习 checkpoint、评估与候选报告 | 忽略 |
 | `renders/` | 预览渲染 | 忽略 |
 | `logs/` | 服务日志 | 忽略 |
 | `standard-parts-cache/` | step.parts 缓存 | 忽略 |

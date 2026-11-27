@@ -16,6 +16,7 @@ Build and edit CAD models from text or reference images, inspect the result in 3
 - Native NVIDIA USD BRep for supported features; CadQuery/OpenCascade for broader parts and assemblies.
 - Combined BRep and visual review, artifact integrity checks, and validation gates.
 - Backend-specific precise USD or STEP exports, preview meshes, and optional FreeCAD integration.
+- Optional offline reinforcement learning for bounded dimension edits, rewarded by CAD reconstruction and engineering verification. [Training and benchmark (中文)](docs/reinforcement-learning.md)
 
 **Stack:** Node.js · Three.js · Python · CadQuery/OpenCascade · NVIDIA USD BRep (optional).
 
