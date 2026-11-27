@@ -8,6 +8,12 @@ export async function saveCadqueryExample({ plan, directory, builderPath }) {
   await copyFile(path.join(path.dirname(builderPath), "brep_review_core.py"), path.join(directory, "brep_review_core.py"));
   if (Object.hasOwn(plan, "engineeringVerification")) {
     await copyFile(path.join(path.dirname(builderPath), "engineering_verification.py"), path.join(directory, "engineering_verification.py"));
+    const requirements = plan.engineeringVerification?.requirements;
+    if (Array.isArray(requirements) && requirements.some(requirement => requirement?.kind === "mount_fixture")) {
+      for (const filename of ["structure_rl.py", "cad_rl.py", "cad_rl_env.py", "cad_rl_policy.py"]) {
+        await copyFile(path.join(path.dirname(builderPath), filename), path.join(directory, filename));
+      }
+    }
   }
   const script = `import json
 from pathlib import Path

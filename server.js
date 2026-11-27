@@ -1738,8 +1738,9 @@ async function runCadQueryAssemblyBuild({ manifestPath, maxBuffer = 200000 }) {
   const summary = extractJsonObject(buildResult.stdout);
   const verification = summary.geometryValidation?.engineeringVerification;
   if (verification) {
-    const manifest = JSON.parse(await readFile(manifestPath,"utf8"));
-    const task = manifest.engineeringVerification?.requirements?.find(r=>r.kind==="mount_fixture")?.fixture;
+    const manifest = await readFile(manifestPath, "utf8").then(JSON.parse).catch(() => null);
+    const requirements = manifest?.engineeringVerification?.requirements;
+    const task = Array.isArray(requirements) ? requirements.find(item => item?.kind === "mount_fixture")?.fixture : null;
     await recordRlEvent({type:"verification", designDigest:verification.designDigest,
       decision:verification.decision, claims:verification.verification?.claims, ...(task && {task})});
   }
@@ -1754,28 +1755,38 @@ function mountModel() {
   return existsSync(deployedMountModel) ? deployedMountModel : path.join(__dirname,"models/mount-active.json");
 }
 async function recordRlEvent(event) {
-  await mkdir(experienceDir,{recursive:true});
   const dest = path.join(experienceDir, Date.now()+"-"+randomUUID()+"-"+event.type+".json");
-  await writeFile(dest+".tmp",JSON.stringify(event),"utf8");
-  await rename(dest+".tmp",dest);
+  const pending = `${dest}.tmp`;
+  try {
+    await mkdir(experienceDir, { recursive: true });
+    await writeFile(pending, JSON.stringify(event), "utf8");
+    await rename(pending, dest);
+  } catch (error) {
+    await rm(pending, { force: true }).catch(() => {});
+    console.warn(`跳过强化学习反馈 ${event.type}`, error.message);
+    return;
+  }
   if (["exploration","rating"].includes(event.type) && !mountTraining) {
     mountTraining = checkMountTraining().catch(error=>console.warn("安装板训练延后",error.message))
       .finally(()=>{ mountTraining=null; });
   }
 }
 async function checkMountTraining() {
-  const cursorFile=path.join(rlDir,"last-training-count.json");
-  const previous=existsSync(cursorFile) ? JSON.parse(await readFile(cursorFile,"utf8")) : 0;
-  const names=await readdir(experienceDir);
-  const eligible=names.filter(name=>name.endsWith("-exploration.json") || name.endsWith("-rating.json")).length;
-  if (eligible-previous<100) return;
-  try { await copyFile(path.join(__dirname,"models/mount-active.json"),deployedMountModel,constants.COPYFILE_EXCL); }
-  catch(error){ if(error.code!=="EEXIST")throw error; }
-  await runProcess(cadqueryPython,[path.join(__dirname,"scripts/mount_learning.py"),"train",
-    "--model",deployedMountModel,"--experience",experienceDir,"--out",path.join(rlDir,"runs",randomUUID()),"--activate"],
-    {cwd:__dirname,timeoutMs:1800000});
-  await writeFile(cursorFile+".tmp",JSON.stringify(eligible));
-  await rename(cursorFile+".tmp",cursorFile);
+  const cursorFile = path.join(rlDir, "last-training-count.json");
+  let previous = existsSync(cursorFile) ? JSON.parse(await readFile(cursorFile, "utf8")) : 0;
+  for (;;) {
+    const names = await readdir(experienceDir);
+    const eligible = names.filter(name => name.endsWith("-exploration.json") || name.endsWith("-rating.json")).length;
+    if (eligible - previous < 100) return;
+    try { await copyFile(path.join(__dirname, "models/mount-active.json"), deployedMountModel, constants.COPYFILE_EXCL); }
+    catch (error) { if (error.code !== "EEXIST") throw error; }
+    await runProcess(cadqueryPython, [path.join(__dirname, "scripts/mount_learning.py"), "train",
+      "--model", deployedMountModel, "--experience", experienceDir, "--out", path.join(rlDir, "runs", randomUUID()), "--activate"],
+      { cwd: __dirname, timeoutMs: 1800000 });
+    await writeFile(`${cursorFile}.tmp`, JSON.stringify(eligible));
+    await rename(`${cursorFile}.tmp`, cursorFile);
+    previous = eligible;
+  }
 }
 async function exploreMountTurn(conversationId, message, task) {
   await mkdir(rlDir,{recursive:true});

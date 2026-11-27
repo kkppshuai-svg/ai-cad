@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
 import { once } from "node:events";
-import { mkdtemp, readFile, readdir } from "node:fs/promises";
+import { mkdtemp, readFile, readdir, rename, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import assert from "node:assert/strict";
@@ -36,7 +36,16 @@ try {
   assert.ok(events.some(x=>x.type==="verification"));
   const rejected=await post("/api/chat",{message:"/安装板 "+JSON.stringify({...task,pinCount:4})});
   assert.equal(rejected.exploration.action,null);
-  console.log("Verified build, rating, and rejected exploration:",dir);
+  await rename(dir, `${dir}-verified`);
+  await writeFile(dir, "feedback directory intentionally unavailable");
+  const fallback = await post("/api/chat", { message: "/安装板 " + JSON.stringify(task) });
+  assert.ok(fallback.assembly.currentRevision);
+  const fallbackRating = await post("/api/rate", {
+    assemblyId: fallback.assembly.id, conversationId: fallback.conversationId,
+    plan: fallback.plan, assembly: fallback.assembly, score: 50, comment: "feedback unavailable fixture"
+  });
+  assert.ok(fallbackRating.ok);
+  console.log("Verified build, rating, rejected exploration, and feedback storage failure:", root);
 } finally {
   server.kill("SIGTERM");
 }

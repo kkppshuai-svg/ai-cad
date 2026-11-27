@@ -35,3 +35,25 @@ test('examples with engineering requirements include the production evidence eva
   const plan = JSON.parse(await readFile(path.join(directory, 'feature-plan.json'), 'utf8'));
   assert.deepEqual(plan.engineeringVerification, engineeringVerification);
 });
+
+test('archived mounting examples run fixture verification without the repository', async t => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'aicad-example-'));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const outputDir = path.join(directory, 'output');
+  const fixture = { pitchMm: 23, pinCount: 2, travelMm: 6, minSeatFraction: 0.65 };
+  const plan = {
+    name: 'mount-candidate', outputDir,
+    parts: [{ id: 'plate', primitives: [{ type: 'box', size: [51, 41, 4] }],
+      features: [-11.5, 11.5].map(y => ({ type: 'slot', axis: 'x', width: 4.4, length: 10.4, center: [-11.5, y, 0] })) }],
+    engineeringVerification: { requirements: [{ id: 'mount-interface', kind: 'mount_fixture', fixture }] }
+  };
+  await saveCadqueryExample({ plan, directory, builderPath: path.resolve('scripts/cadquery_build.py') });
+  const python = process.env.CADQUERY_PYTHON || path.resolve('.venv-cadquery/bin/python');
+  execFileSync(python, ['cadquery_build.py', 'feature-plan.json'], {
+    cwd: directory,
+    env: { ...process.env, PYTHONPATH: '', AI_CAD_CADQUERY_MANIFEST: '' }
+  });
+  const report = JSON.parse(await readFile(path.join(outputDir, 'geometry-validation.json'), 'utf8'));
+  assert.equal(report.engineeringVerification.decision, 'pass');
+  assert.equal(report.engineeringVerification.verification.claims[0].method, 'pin_sweep_and_washer_seat');
+});
