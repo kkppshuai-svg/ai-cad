@@ -9,7 +9,8 @@
     "views": [
       { "id": "modeling_path", "label": "从需求到修订", "focus": ["workbench", "orchestrator", "planner", "parametric", "cadkernel", "validation", "revision", "delivery"], "note": "同次构建产生几何事实，按需检查工程条件，通过后晋级修订。" },
       { "id": "ai_context", "label": "AI 规划与上下文", "focus": ["orchestrator", "planner", "codex", "catalog", "learning"], "note": "Codex、资料检索、标准件和 VAE 只辅助参数化计划，不替代几何验证。" },
-      { "id": "repair_loop", "label": "审查与复验", "focus": ["visual", "orchestrator", "parametric", "validation", "revision"], "note": "几何问题进入修复，工程待确认时保留候选和补证据提示。" }
+      { "id": "repair_loop", "label": "审查与复验", "focus": ["visual", "orchestrator", "parametric", "validation", "revision"], "note": "几何问题进入修复，工程待确认时保留候选和补证据提示。" },
+      { "id": "mount_learning", "label": "安装板强化学习", "focus": ["orchestrator", "mount_strategy", "mount_feedback", "parametric", "cadkernel", "validation", "revision"], "note": "Q 表为四孔板和双调节槽安排试建顺序。两种方案都核查。每新增 100 条探索或评分事件尝试训练，留出集通过数和奖励均不降、至少一项改善，且原通过案例仍通过，才启用新策略。" }
     ]
   },
   "components": [
@@ -24,10 +25,12 @@
     { "id": "codex", "type": "external", "label": "Codex", "sublabel": "完整计划 / edit_patch", "pos": [285, 90], "size": [175, 72] },
     { "id": "catalog", "type": "external", "label": "资料与标准件", "sublabel": "AnySearch · step.parts", "pos": [515, 90], "size": [175, 72] },
     { "id": "learning", "type": "database", "label": "VAE / latent 学习库", "sublabel": "成功结构与失败模式", "pos": [745, 90], "size": [175, 72] },
+    { "id": "mount_strategy", "type": "backend", "label": "安装板策略（Q 表）", "sublabel": "四孔板 · 双调节槽", "pos": [975, 90], "size": [175, 72] },
+    { "id": "mount_feedback", "type": "backend", "label": "安装板反馈训练", "sublabel": "探索与评分 · 每满 100 条", "pos": [1205, 90], "size": [185, 72] },
     { "id": "visual", "type": "frontend", "label": "视觉审查闭环", "sublabel": "问题定位 · 拟修改 · 再验证", "pos": [515, 545], "size": [175, 78] }
   ],
   "boundaries": [
-    { "kind": "region", "label": "AI-CAD 本机工程域", "wraps": ["workbench", "orchestrator", "planner", "parametric", "cadkernel", "validation", "revision", "delivery", "visual", "learning"], "pad": 24 }
+    { "kind": "region", "label": "AI-CAD 本机工程域", "wraps": ["workbench", "orchestrator", "planner", "parametric", "cadkernel", "validation", "revision", "delivery", "visual", "learning", "mount_strategy", "mount_feedback"], "pad": 24 }
   ],
   "connections": [
     { "id": "request", "from": "workbench", "to": "orchestrator", "label": "POST /api/chat", "variant": "emphasis", "labelAt": [258, 311] },
@@ -42,11 +45,14 @@
     { "id": "latent_context", "from": "learning", "to": "planner", "label": "结构检索上下文", "variant": "dashed" },
     { "id": "review_feedback", "from": "visual", "to": "orchestrator", "label": "结构化问题反馈", "fromSide": "left", "toSide": "bottom" },
     { "id": "review_target", "from": "visual", "to": "parametric", "label": "零件 / 特征目标", "variant": "security", "fromSide": "top", "toSide": "bottom" },
-    { "id": "repair_retry", "from": "validation", "to": "orchestrator", "label": "修复几何或返回工程证据缺口", "variant": "security", "fromSide": "right", "toSide": "left", "via": [[1420, 354], [1420, 690], [270, 690], [270, 354]], "labelAt": [850, 710] }
+    { "id": "repair_retry", "from": "validation", "to": "orchestrator", "label": "修复几何或返回工程证据缺口", "variant": "security", "fromSide": "right", "toSide": "left", "via": [[1420, 354], [1420, 690], [270, 690], [270, 354]], "labelAt": [850, 710] },
+    { "id": "mount_candidate", "from": "mount_strategy", "to": "parametric", "label": "合格方案交统一构建", "fromSide": "bottom", "toSide": "top", "via": [[1062.5, 248], [832.5, 248]], "labelAt": [947.5, 244] },
+    { "id": "mount_evidence", "from": "validation", "to": "mount_feedback", "label": "夹具核查证据", "variant": "dashed", "fromSide": "top", "toSide": "bottom", "labelAt": [1297.5, 233] },
+    { "id": "mount_checkpoint", "from": "mount_feedback", "to": "mount_strategy", "label": "留出评估达标才更新", "variant": "security", "fromSide": "left", "toSide": "right", "labelAt": [1177.5, 181] }
   ],
   "cards": [
     { "dot": "cyan", "title": "核心原则", "items": ["参数化 featureTree 是主表示", "局部 edit_patch 不重建无关零件"] },
     { "dot": "emerald", "title": "工程门禁", "items": ["按需检查尺寸、载荷或试验记录", "通过才晋级，待确认保留待补证据"] },
-    { "dot": "amber", "title": "AI 边界", "items": ["Codex 与 VAE 提供规划上下文", "视觉截图不作为精确尺寸证据"] }
+    { "dot": "amber", "title": "AI 边界", "items": ["Codex 与 VAE 提供规划上下文", "视觉截图不作为精确尺寸证据", "安装板策略通过留出评估且改善才更新"] }
   ]
 }

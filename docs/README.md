@@ -2,7 +2,7 @@
 
 [中文首页](../README.md) · [English overview](../README.en.md) · [English setup](getting-started.en.md)
 
-本文档集描述 GitHub 主分支所对应的工程研发基线。文档以仓库当前实现为准；规划中的能力必须明确标注，不能写成已交付功能。
+本文档描述所在分支的工程研发实现。规划中的能力另行标注。
 
 ## 阅读顺序
 
@@ -16,7 +16,7 @@
 8. [参数化编辑](parametric-editing.md)：实现稳定特征 ID 和局部修订。
 9. [开发与测试](development.md)：修改代码、运行回归和维护文档。
 10. [自主工程验证](autonomous-engineering-verification.md) · 验收条件、证据不足的处理与可复现实验。
-11. [CAD 强化学习](reinforcement-learning.md) · 复用工程验证训练参数编辑策略，并离线评估与导出候选。
+11. [CAD 强化学习](reinforcement-learning.md) · 查看尺寸策略、安装板探索、反馈训练与候选权重启用条件。
 
 ## 当前双内核与联合审查
 
