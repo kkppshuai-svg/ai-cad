@@ -12,8 +12,8 @@ import { validateAssemblyPlan, normalizePlanShape, normalizeInertial, normalizeP
 import { saveCadqueryExample } from "./cadquery-example.js";
 import { createServer } from "node:http";
 import { randomUUID } from "node:crypto";
-import { copyFile, mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
-import { createReadStream, existsSync } from "node:fs";
+import { copyFile, mkdir, readFile, readdir, rename, rm, stat, writeFile } from "node:fs/promises";
+import { constants, createReadStream, existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
@@ -697,6 +697,13 @@ async function handleChat(req, res, url) {
   const webSearch = normalizeWebSearchOptions(body.webSearch, { defaultMaxResults: webSearchMaxResults });
   const imageAttachments = await persistChatImages(conversationId, body.images);
   if (!message && !imageAttachments.length) return json(res, 400, { error: "Message is required" });
+  if (/^\/安装板(?:\s|$)/u.test(message)) {
+    if (engineeringVerification || imageAttachments.length) return json(res, 422, {error:"安装板探索入口使用夹具 JSON 指定完整需求。"});
+    let task;
+    try { task = JSON.parse(message.slice(4).trim()); }
+    catch { return json(res, 400, {error:"请在 /安装板 后填写夹具 JSON。"}); }
+    return json(res, 200, await exploreMountTurn(conversationId, message, task));
+  }
 
   const result = await handleConversationTurn(
     conversationId,
@@ -720,6 +727,13 @@ async function handleChatStop(req, res, url) {
 async function handleRate(req, res, url) {
   const body = await readJson(req);
   const rating = await persistManualRating(body);
+  const job = assemblyJobs.get(body.assemblyId) || (body.assemblyId && /^[\w-]+$/.test(body.assemblyId)
+    ? await restoreAssemblyJob(assemblyDir, body.assemblyId).catch(() => null) : null);
+  if (job?.currentRevision && job.currentRevision === body.assembly?.currentRevision && job.validationReport?.engineeringVerification?.designDigest) {
+    await recordRlEvent({type:"rating", assemblyId:job.id, revision:job.currentRevision,
+      designDigest:job.validationReport.engineeringVerification.designDigest, score:Number(body.score),
+      comment:sanitizeText(body.comment || "",1200)});
+  }
   return json(res, 200, rating);
 }
 
@@ -1721,7 +1735,81 @@ async function runCadQueryAssemblyBuild({ manifestPath, maxBuffer = 200000 }) {
     timeoutMs: 90000,
     maxBuffer
   });
-  return extractJsonObject(buildResult.stdout);
+  const summary = extractJsonObject(buildResult.stdout);
+  const verification = summary.geometryValidation?.engineeringVerification;
+  if (verification) {
+    const manifest = await readFile(manifestPath, "utf8").then(JSON.parse).catch(() => null);
+    const requirements = manifest?.engineeringVerification?.requirements;
+    const task = Array.isArray(requirements) ? requirements.find(item => item?.kind === "mount_fixture")?.fixture : null;
+    await recordRlEvent({type:"verification", designDigest:verification.designDigest,
+      decision:verification.decision, claims:verification.verification?.claims, ...(task && {task})});
+  }
+  return summary;
+}
+
+const rlDir = process.env.AICAD_RL_DIR || path.join(workspaceDir,"rl");
+const experienceDir = path.join(rlDir,"experience");
+const deployedMountModel = path.join(rlDir,"mount-active.json");
+let mountTraining = null;
+function mountModel() {
+  return existsSync(deployedMountModel) ? deployedMountModel : path.join(__dirname,"models/mount-active.json");
+}
+async function recordRlEvent(event) {
+  const dest = path.join(experienceDir, Date.now()+"-"+randomUUID()+"-"+event.type+".json");
+  const pending = `${dest}.tmp`;
+  try {
+    await mkdir(experienceDir, { recursive: true });
+    await writeFile(pending, JSON.stringify(event), "utf8");
+    await rename(pending, dest);
+  } catch (error) {
+    await rm(pending, { force: true }).catch(() => {});
+    console.warn(`跳过强化学习反馈 ${event.type}`, error.message);
+    return;
+  }
+  if (["exploration","rating"].includes(event.type) && !mountTraining) {
+    mountTraining = checkMountTraining().catch(error=>console.warn("安装板训练延后",error.message))
+      .finally(()=>{ mountTraining=null; });
+  }
+}
+async function checkMountTraining() {
+  const cursorFile = path.join(rlDir, "last-training-count.json");
+  let previous = existsSync(cursorFile) ? JSON.parse(await readFile(cursorFile, "utf8")) : 0;
+  for (;;) {
+    const names = await readdir(experienceDir);
+    const eligible = names.filter(name => name.endsWith("-exploration.json") || name.endsWith("-rating.json")).length;
+    if (eligible - previous < 100) return;
+    try { await copyFile(path.join(__dirname, "models/mount-active.json"), deployedMountModel, constants.COPYFILE_EXCL); }
+    catch (error) { if (error.code !== "EEXIST") throw error; }
+    await runProcess(cadqueryPython, [path.join(__dirname, "scripts/mount_learning.py"), "train",
+      "--model", deployedMountModel, "--experience", experienceDir, "--out", path.join(rlDir, "runs", randomUUID()), "--activate"],
+      { cwd: __dirname, timeoutMs: 1800000 });
+    await writeFile(`${cursorFile}.tmp`, JSON.stringify(eligible));
+    await rename(`${cursorFile}.tmp`, cursorFile);
+    previous = eligible;
+  }
+}
+async function exploreMountTurn(conversationId, message, task) {
+  await mkdir(rlDir,{recursive:true});
+  const prefix = path.join(rlDir,randomUUID());
+  await writeFile(prefix+".task.json",JSON.stringify(task));
+  await runProcess(cadqueryPython,[path.join(__dirname,"scripts/mount_learning.py"),"explore",
+    "--model",mountModel(),"--input",prefix+".task.json","--out",prefix+".result.json"],
+    {cwd:__dirname,timeoutMs:90000});
+  const {plan,...exploration} = JSON.parse(await readFile(prefix+".result.json","utf8"));
+  await recordRlEvent({type:"exploration",...exploration});
+  if (!plan) return {conversationId,reply:"本次两种安装结构均未通过夹具验收。",exploration};
+  const job = await buildAssembly(plan);
+  const report = job.validationReport?.engineeringVerification;
+  await recordRlEvent({type:"selected",task,action:exploration.action,assemblyId:job.id,revision:job.currentRevision,
+    designDigest:report?.designDigest,decision:report?.decision});
+  const conversation = conversations.get(conversationId) || {id:conversationId,messages:[]};
+  const reply = "已试建四孔板与双调节槽，采用通过夹具验收的方案。";
+  conversation.messages.push({role:"user",content:message},{role:"assistant",content:reply});
+  conversation.assemblyId=job.id;
+  synchronizeConversationWithAssembly(conversation,job);
+  conversations.set(conversationId,conversation);
+  await persistConversation(conversation,job.plan);
+  return {conversationId,reply,plan:job.plan,assembly:publicAssembly(job),exploration};
 }
 
 function buildAssembly(plan, repairContext = {}) {

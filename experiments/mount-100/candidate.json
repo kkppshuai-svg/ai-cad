@@ -1,0 +1,47 @@
+{
+  "format": "ai-cad-mount-policy-v1",
+  "sources": {
+    "four_holes": [
+      "2026-05-19T08-17-59-286Z-100-verification-assembly"
+    ],
+    "twin_slots": [
+      "curated-2026-08-10-nema23-l-bracket"
+    ]
+  },
+  "q": {
+    "4/1/1": {
+      "four_holes": -0.9999992153622831,
+      "twin_slots": -0.9999992153622831
+    },
+    "2/1/0": {
+      "four_holes": -0.9980657186886166,
+      "twin_slots": 1.7843187782003629
+    },
+    "4/0/1": {
+      "four_holes": 1.9999999984458647,
+      "twin_slots": -0.9980657186886166
+    },
+    "2/0/0": {
+      "four_holes": 1.9999999990053532,
+      "twin_slots": 1.718779370828274
+    },
+    "2/1/1": {
+      "four_holes": -0.931280523264,
+      "twin_slots": -0.931280523264
+    },
+    "4/1/0": {
+      "four_holes": -0.931280523264,
+      "twin_slots": -0.931280523264
+    },
+    "2/0/1": {
+      "four_holes": 1.8625610465279998,
+      "twin_slots": -0.931280523264
+    },
+    "4/0/0": {
+      "four_holes": 1.8625610465279998,
+      "twin_slots": -0.931280523264
+    }
+  },
+  "updates": 600,
+  "customTraining": false
+}

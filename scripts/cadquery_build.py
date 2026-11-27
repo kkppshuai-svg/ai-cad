@@ -1397,7 +1397,7 @@ def main():
     validation_payload["blockingErrorCount"] += len(step_roundtrip["issues"])
     if "engineeringVerification" in plan:
         from engineering_verification import evaluate_manifest
-        validation_payload["engineeringVerification"] = evaluate_manifest(plan, geometry_reports)
+        validation_payload["engineeringVerification"] = evaluate_manifest(plan, geometry_reports, located_entries)
     with open(geometry_validation_path, "w", encoding="utf-8") as handle:
         json.dump(validation_payload, handle, ensure_ascii=False, indent=2)
         handle.write("\n")

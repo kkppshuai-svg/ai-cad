@@ -229,6 +229,10 @@ async function restoreTrainingCheckpoint() {
 }
 
 function wireEvents() {
+  document.querySelector("#mountExploreBtn").addEventListener("click", () => {
+    if (!els.chatInput.value.trim()) els.chatInput.value = '/安装板 {"pitchMm":23,"pinCount":2,"travelMm":6,"minSeatFraction":0.65}';
+    els.chatInput.focus();
+  });
   els.chatForm.addEventListener("submit", (event) => {
     event.preventDefault();
     sendChat();
@@ -437,7 +441,7 @@ async function sendChat() {
   const images = state.pendingImages.slice();
   const trainingRequested = state.trainingMode;
   if (!message && !images.length) return;
-  if (state.previewEngine === "usd-brep") return sendNativeChat(message, images);
+  if (state.previewEngine === "usd-brep" && !/^\/安装板(?:\s|$)/u.test(message)) return sendNativeChat(message, images);
 
   pushMessage("user", images.length ? `${message || "（识别参考图片建模）"}\n📷 附带 ${images.length} 张参考图` : message);
   els.chatInput.value = "";
@@ -495,6 +499,14 @@ async function sendChat() {
     pushMessage("assistant", candidateDecision
       ? `本次修改${candidateDecision === "hold" ? "需补充工程证据" : "未满足工程要求"}，当前继续使用原版本。候选结果见统一审查。`
       : result.reply || "装配已生成。");
+    if (result.exploration) {
+      els.log.textContent = JSON.stringify(result.exploration, null, 2);
+      if (result.assembly) await applyPlan(result.plan, result.assembly);
+      updateProcessTrace("build","完成","已分别试建两种结构");
+      updateProcessTrace("validate",result.assembly ? "完成" : "失败",result.reply);
+      updateProcessTrace("deliver",result.assembly ? "完成" : "已停止",result.assembly ? "候选已构建，可提交人工评分" : "无合格候选");
+      return;
+    }
     await applyPlan(result.plan, result.assembly);
     const engineeringDecision = candidateDecision || engineeringBlock(result.assembly);
     if (engineeringDecision) {
@@ -645,6 +657,18 @@ function renderEngineeringVerification(report, statusLabel) {
     let detail = "";
     if (Array.isArray(evidence.dimensionsMm) && evidence.dimensionsMm.every(Number.isFinite) && Array.isArray(evidence.limitMm) && evidence.limitMm.every(Number.isFinite)) {
       detail = `BRep 实测 ${evidence.dimensionsMm.map(number).join(" × ")} mm，上限 ${evidence.limitMm.map(number).join(" × ")} mm`;
+    } else if (Number.isFinite(evidence.minMm) && Number.isFinite(evidence.maxMm)) {
+      const allowed = `${number(evidence.minMm)}–${number(evidence.maxMm)} mm`;
+      if (Number.isFinite(evidence.measuredMm)) {
+        detail = `整体安装外宽 ${number(evidence.measuredMm)} mm，允许 ${allowed}`;
+      } else if (Array.isArray(evidence.interval) && evidence.interval.every(Number.isFinite)) {
+        detail = `计算工作挠度 ${evidence.interval.map(number).join("–")} mm，允许 ${allowed}`;
+        if (Number.isFinite(evidence.targetMm)) detail += `，目标 ${number(evidence.targetMm)} mm`;
+      }
+    } else if (Number.isFinite(evidence.minEndSeatFraction) && Number.isFinite(evidence.maxPinSweepOverlapMm3)) {
+      detail = `销全行程最大侵入体积 ${number(evidence.maxPinSweepOverlapMm3)} mm³，端点垫圈最小有效压紧面积占比 ${number(100 * evidence.minEndSeatFraction)}%`;
+    } else if (typeof evidence.statement === "string") {
+      detail = evidence.statement;
     } else if (Array.isArray(evidence.interval) && evidence.interval.every(Number.isFinite) && Number.isFinite(evidence.limit)) {
       detail = `计算区间 ${evidence.interval.map(number).join("–")} ${evidence.unit}，上限 ${number(evidence.limit)} ${evidence.unit}`;
     } else if (evidence.eligible?.length && Number.isFinite(evidence.limitMm)) {

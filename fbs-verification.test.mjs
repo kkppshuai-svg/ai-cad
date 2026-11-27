@@ -2,6 +2,24 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { compileFbsVerification } from "./fbs-verification.js";
 
+test("compiles mounting width and working travel with an explicit target", () => {
+  const result = compileFbsVerification({ requirements: "整体安装外宽范围 20 至 26 mm。工作挠度范围 0.14 至 0.21 mm，目标工作挠度 0.165 mm。一端固支，自由端沿 Z 方向施加 20 N 静载，弹性模量 70 GPa。" });
+  assert.deepEqual(result.requirements.map(({kind, minMm, maxMm, targetMm}) => [kind, minMm, maxMm, targetMm]),
+    [["outside_width", 20, 26, undefined], ["deflection", 0.14, 0.21, 0.165]]);
+  assert.ok(result.requirements.every(row => !row.missing));
+});
+
+test("explicit manual criteria are traceable even when no automated measure applies", () => {
+  const result = compileFbsVerification({}, {criteria: "必须人工复核：装配后扳手能否伸入。" });
+  assert.deepEqual(result.requirements, [{id: "review-1", kind: "design_review",
+    statement: "装配后扳手能否伸入", sourceIds: ["user-criteria"]}]);
+});
+
+test("conflicting width ranges request clarification", () => {
+  const result = compileFbsVerification({requirements: "整体安装外宽范围 20 至 26 mm。整体安装外宽范围 32 至 38 mm。"});
+  assert.ok(result.requirements[0].missing.includes("minMm"));
+});
+
 test("maps explicit envelope and static cantilever targets with FBS trace IDs", () => {
   const result = compileFbsVerification({
     requirements: "XYZ 包络上限 130 × 30 × 12 mm。一端理想固支，自由端沿 Z 方向施加 20 至 22 N 静载，弹性模量 70 GPa。最大允许挠度 0.25 mm，最大允许应力 20 MPa。",

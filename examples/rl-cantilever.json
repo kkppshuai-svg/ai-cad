@@ -1,0 +1,21 @@
+{
+  "format": "ai-cad-rl-beam-task-v1",
+  "id": "cantilever-example",
+  "search": {
+    "widthMm": { "min": 16, "max": 30, "step": 2 },
+    "thicknessMm": { "min": 5, "max": 11, "step": 1 }
+  },
+  "plan": {
+    "name": "cantilever-example",
+    "parts": [{ "id": "beam", "primitives": [{ "type": "box", "size": [120, 22, 6] }] }],
+    "engineeringVerification": {
+      "requirements": [
+        { "id": "space", "kind": "envelope", "maxMm": [120, 30, 11] },
+        { "id": "stiffness", "kind": "deflection", "maxMm": 0.20 },
+        { "id": "strength", "kind": "stress", "maxMPa": 16 }
+      ],
+      "loadCase": { "support": "ideal_clamp", "kind": "static_tip_force", "forceN": [18, 22] },
+      "material": { "youngMPa": [65000, 72000] }
+    }
+  }
+}

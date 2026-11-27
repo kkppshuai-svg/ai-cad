@@ -8,6 +8,10 @@
 
 AI-CAD 把 FBS 的行为目标连到工程验证。系统从用户需求中提取明确的验收条件，复用本次 CadQuery 构建的几何事实，给出通过、不通过或待确认。证据不足时，报告会列出需要补充的信息。[自主工程验证与运行示例](docs/autonomous-engineering-verification.md)
 
+工程验证也可作为强化学习的奖励信号。离线策略通过实际 BRep 重建学习选择尺寸编辑，并在未见过的算例上和固定规则对比。[强化学习训练、评估与候选导出](docs/reinforcement-learning.md)
+
+安装结构策略从已评分的四孔安装板和双调节槽样本提取候选类型，用销的全行程干涉和垫圈端点压紧面积训练结构选择。[结构训练与示例](docs/reinforcement-learning.md#从优秀结构样本学习安装方案)
+
 ![AI-CAD 行星减速机工作台示例](docs/assets/examples/planetary-reducer.png)
 
 *研发过程截图。[更多示例](docs/examples.md)*
