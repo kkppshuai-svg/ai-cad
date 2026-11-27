@@ -645,6 +645,18 @@ function renderEngineeringVerification(report, statusLabel) {
     let detail = "";
     if (Array.isArray(evidence.dimensionsMm) && evidence.dimensionsMm.every(Number.isFinite) && Array.isArray(evidence.limitMm) && evidence.limitMm.every(Number.isFinite)) {
       detail = `BRep 实测 ${evidence.dimensionsMm.map(number).join(" × ")} mm，上限 ${evidence.limitMm.map(number).join(" × ")} mm`;
+    } else if (Number.isFinite(evidence.minMm) && Number.isFinite(evidence.maxMm)) {
+      const allowed = `${number(evidence.minMm)}–${number(evidence.maxMm)} mm`;
+      if (Number.isFinite(evidence.measuredMm)) {
+        detail = `整体安装外宽 ${number(evidence.measuredMm)} mm，允许 ${allowed}`;
+      } else if (Array.isArray(evidence.interval) && evidence.interval.every(Number.isFinite)) {
+        detail = `计算工作挠度 ${evidence.interval.map(number).join("–")} mm，允许 ${allowed}`;
+        if (Number.isFinite(evidence.targetMm)) detail += `，目标 ${number(evidence.targetMm)} mm`;
+      }
+    } else if (Number.isFinite(evidence.minEndSeatFraction) && Number.isFinite(evidence.maxPinSweepOverlapMm3)) {
+      detail = `销全行程最大侵入体积 ${number(evidence.maxPinSweepOverlapMm3)} mm³，端点垫圈最小有效压紧面积占比 ${number(100 * evidence.minEndSeatFraction)}%`;
+    } else if (typeof evidence.statement === "string") {
+      detail = evidence.statement;
     } else if (Array.isArray(evidence.interval) && evidence.interval.every(Number.isFinite) && Number.isFinite(evidence.limit)) {
       detail = `计算区间 ${evidence.interval.map(number).join("–")} ${evidence.unit}，上限 ${number(evidence.limit)} ${evidence.unit}`;
     } else if (evidence.eligible?.length && Number.isFinite(evidence.limitMm)) {

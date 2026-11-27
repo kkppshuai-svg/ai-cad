@@ -18,6 +18,45 @@ def task():
 
 
 class CadRLTest(unittest.TestCase):
+    def test_usage_changes_verdict_and_ranking_for_the_same_solids(self):
+        fixture = json.loads(EXAMPLE.with_name("rl-cantilever-fit.json").read_text())
+        for item, expected_width in [(fixture, 24), (task(), 22)]:
+            size = item["plan"]["parts"][0]["primitives"][0]["size"]
+            size[:] = [120, 22, 8]
+            # 22x8 and 24x8 both fit; under the material-only contract also allow their working range.
+            if item["id"] == "cantilever-example":
+                item["plan"]["engineeringVerification"]["requirements"][1]["maxMm"] = 0.21
+            env = BeamEnv(item, max_steps=2)
+            env.reset()
+            self.assertTrue(env.current.passed)
+            env.step(1)
+            self.assertTrue(env.current.passed)
+            self.assertEqual(env.best.size[1], expected_width)
+            slender = env.candidate((0, 5))  # 16 x 10
+            self.assertEqual(slender.passed, item["id"] == "cantilever-example")
+            if expected_width == 24:
+                decisions = {c["id"]: c["decision"] for c in slender.report["verification"]["claims"]}
+                self.assertEqual(decisions["strength"], "pass")
+                self.assertEqual(decisions["fixture-width"], "fail")
+                self.assertEqual(decisions["working-travel"], "hold")
+
+    def test_unsupported_direction_and_review_require_evidence(self):
+        item = task()
+        contract = item["plan"]["engineeringVerification"]
+        contract["loadCase"]["direction"] = "Y"
+        result = suggest(QPolicy(), item, 8)
+        self.assertIsNone(result["candidate"])
+        self.assertIn("load_direction_out_of_scope", [c["reason"] for c in result["lastReport"]["verification"]["claims"]])
+        contract["loadCase"]["direction"] = "Z"
+        contract["requirements"].append({"kind": "design_review", "id": "service",
+                                         "statement": "装配后扳手可达", "sourceIds": ["user-criteria"]})
+        result = suggest(QPolicy(), item, 8)
+        self.assertIsNone(result["candidate"])
+        check = result["lastReport"]["verification"]["claims"][-1]
+        self.assertEqual(check["decision"], "hold")
+        self.assertEqual(check["evidence"]["statement"], "装配后扳手可达")
+        self.assertEqual(check["sourceIds"], ["user-criteria"])
+
     def test_real_brep_and_locked_contract(self):
         item = task()
         frozen = copy.deepcopy(item)

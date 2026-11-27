@@ -5,7 +5,7 @@ from dataclasses import dataclass
 import math
 import random
 
-from engineering_verification import bounds, cantilever_response, evaluate, finite_number
+from engineering_verification import cantilever_response, evaluate, finite_number
 
 
 TASK_FORMAT = "ai-cad-rl-beam-task-v1"
@@ -85,6 +85,32 @@ class Candidate:
     stress_ratio: float
     envelope_ratio: float
     evidence_blocked: bool
+    bands: tuple
+
+    def fit(self, width_scale=1.0, displacement_scale=1.0):
+        """Return lower/upper violations and widest normalized target miss from measured evidence."""
+        below_width = above_width = below_travel = above_travel = target_error = 0.0
+        has_target = False
+        for kind, evidence in self.bands:
+            lower, upper = evidence["minMm"], evidence["maxMm"]
+            if kind == "outside_width":
+                width = evidence["measuredMm"] * width_scale
+                below_width = max(below_width, lower / width)
+                above_width = max(above_width, width / upper)
+            else:
+                low, high = (value * displacement_scale for value in evidence["interval"])
+                below_travel = max(below_travel, lower / low)
+                above_travel = max(above_travel, high / upper if upper else math.inf)
+                if "targetMm" in evidence:
+                    has_target = True
+                    target = evidence["targetMm"]
+                    error = max(abs(low - target), abs(high - target))
+                    target_error = max(target_error, error / (upper - lower or upper or 1))
+        return (below_width, above_width, below_travel, above_travel), target_error if has_target else None
+
+    @property
+    def rank(self):
+        return self.fit()[1] or 0, self.volume
 
     @property
     def passed(self):
@@ -92,7 +118,7 @@ class Candidate:
 
     @property
     def worst(self):
-        return max(self.deflection_ratio, self.stress_ratio, self.envelope_ratio)
+        return max(self.deflection_ratio, self.stress_ratio, self.envelope_ratio, *self.fit()[0])
 
 
 class BeamEnv:
@@ -125,6 +151,7 @@ class BeamEnv:
         volume = None
         ratios = dict.fromkeys(("envelope", "deflection", "stress"), 0.0)
         blocked = False
+        bands = []
         for item in report["verification"]["claims"] + report["validation"]["claims"]:
             evidence = item.get("evidence") or {}
             kind = item["kind"]
@@ -134,13 +161,16 @@ class BeamEnv:
                 blocked |= evidence["dimensionsMm"][0] > evidence["limitMm"][0]
             elif item["reason"] == ANALYTICAL_COMPARISON and evidence["limit"] > 0:
                 ratio = evidence["interval"][1] / evidence["limit"]
+            elif item["reason"] in ("brep_width_compared", "working_deflection_compared"):
+                bands.append((kind, evidence))
+                continue
             else:
                 blocked |= item["decision"] != "pass"
                 continue
             ratios[kind] = max(ratios[kind], ratio)
         blocked |= volume is None
         candidate = Candidate(coordinate, size, plan, report, volume, ratios["deflection"], ratios["stress"],
-                              ratios["envelope"], blocked)
+                              ratios["envelope"], blocked, tuple(bands))
         self.cache[coordinate] = candidate
         return candidate
 
@@ -167,7 +197,9 @@ class BeamEnv:
         # A verified candidate dominates all violations, irrespective of material savings.
         violation = min(4, max(0, self.current.worst - 1))
         if self.best:
-            return 3 * (1 - self.best.volume / self.reference_volume) + 3 - 0.08 * violation
+            target_error = self.best.fit()[1]
+            cost = self.best.volume / self.reference_volume if target_error is None else target_error
+            return 3 * (1 - cost) + 3 - 0.08 * violation
         return -0.35 * math.log1p(violation)
 
     def step(self, action):
@@ -181,7 +213,7 @@ class BeamEnv:
             point = self.neighbor(action)
             self.seen.add(point)
             self.current = self.candidate(point)
-            if self.current.passed and (self.best is None or self.current.volume < self.best.volume):
+            if self.current.passed and (self.best is None or self.current.rank < self.best.rank):
                 self.best = self.current
         reward = self.potential() - before - (0.025 if action != 4 else 0)
         self.trace.append({"action": ACTIONS[action], "sizeMm": self.current.size,
@@ -190,7 +222,7 @@ class BeamEnv:
         return reward
 
 
-def benchmark_tasks(split, count, seed):
+def benchmark_tasks(split, count, seed, suite="material"):
     """Disjoint length grids and RNG seeds. Contracts vary independently of the learner."""
     if split not in ("train", "test"):
         raise ValueError("unknown benchmark split")
@@ -206,7 +238,7 @@ def benchmark_tasks(split, count, seed):
         reference = cantilever_response((length, candidate_width, candidate_thickness), force * 1.08, young * 0.95)
         width = rng.choice((min_w, max_w, rng.randrange(min_w, max_w + 1, 2)))
         thickness = rng.choice((min_t, max_t, rng.randint(min_t, max_t)))
-        yield {
+        task = {
             "format": TASK_FORMAT, "id": f"{split}-{index:04d}",
             "search": {"widthMm": {"min": min_w, "max": max_w, "step": 2},
                        "thicknessMm": {"min": min_t, "max": max_t, "step": 1}},
@@ -224,3 +256,15 @@ def benchmark_tasks(split, count, seed):
                 },
             },
         }
+        if suite == "fit":
+            # Fixture and compliance goals come from a feasible reference under the same load interval.
+            contract = task["plan"]["engineeringVerification"]
+            low = cantilever_response((length, candidate_width, candidate_thickness),
+                                      force, young)["deflection"]
+            high = reference["deflection"]
+            contract["requirements"].append({"id": "fixture", "kind": "outside_width",
+                                             "minMm": candidate_width - 2, "maxMm": candidate_width + 2})
+            contract["requirements"][1].update(minMm=low * 0.82, targetMm=(low + high) / 2)
+        elif suite != "material":
+            raise ValueError("unknown benchmark suite")
+        yield task

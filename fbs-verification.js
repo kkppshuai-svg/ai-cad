@@ -5,7 +5,8 @@ const TARGETS = [
   { kind: "envelope", limitKey: "maxMm", term: String.raw`(?:包络(?:尺寸)?|外形尺寸|\benvelope\b)`,
     intent: new RegExp(String.raw`(?:包络|\benvelope\b|外形尺寸\s*(?:${UPPER_LIMIT}|不能太大)|${ALLOWED_MAXIMUM}\s*外形尺寸)`, "i"),
     amount: String.raw`(${NUMBER})\s*[×x*]\s*(${NUMBER})\s*[×x*]\s*(${NUMBER})\s*mm\b` },
-  { kind: "deflection", limitKey: "maxMm", term: String.raw`(?:挠度|(?:自由端|末端|端部)位移|\bdeflection\b)`,
+  { kind: "outside_width", limitKey: "maxMm", term: "整体安装外宽", bandTerm: "整体安装外宽" },
+  { kind: "deflection", limitKey: "maxMm", term: String.raw`(?:(?:工作)?挠度|(?:自由端|末端|端部)位移|\bdeflection\b)`, bandTerm: "工作挠度",
     qualitative: /(?:不能|不得|不应|避免|限制|防止)[^，,。；;]{0,12}(?:变形|弯)/i, amount: String.raw`(${NUMBER})\s*mm\b` },
   { kind: "stress", limitKey: "maxMPa", term: String.raw`(?:应力|\bstress\b)`, amount: String.raw`(${NUMBER})\s*MPa\b` }
 ];
@@ -51,6 +52,35 @@ function uniqueValue(values) {
   return matches.size === 1 ? matches.values().next().value : undefined;
 }
 
+function applyBand(target, sentences, requirement, missing) {
+  const label = target.bandTerm;
+  if (!label) return;
+  const band = new RegExp(`${label}\\s*范围`, "i");
+  const selected = sentences.filter((s) => band.test(s));
+  if (selected.length || target.kind === "outside_width") {
+    const pattern = new RegExp(String.raw`${label}\s*范围\s*[:=：为]?\s*(${NUMBER})\s*(?:至|到|[-~–—])\s*(${NUMBER})\s*mm\b`, "gi");
+    const spans = selected.flatMap(s => Array.from(s.matchAll(pattern), m => [Number(m[1]), Number(m[2])]));
+    const span = uniqueValue(spans);
+    const occurrences = selected.reduce((n, s) => n + Array.from(s.matchAll(new RegExp(band.source, "gi"))).length, 0);
+    if (spans.length !== occurrences || !span || span[0] > span[1]) missing.push("minMm");
+    else {
+      requirement.minMm = span[0];
+      requirement.maxMm = Math.min(requirement.maxMm ?? Infinity, span[1]);
+      if (requirement.minMm > requirement.maxMm) missing.push("minMm");
+    }
+  }
+  if (target.kind === "deflection") {
+    const text = sentences.join(" ");
+    const labels = Array.from(text.matchAll(/目标工作挠度/g));
+    if (labels.length) {
+      const values = Array.from(text.matchAll(new RegExp(String.raw`目标工作挠度\s*[:=：为]?\s*(${NUMBER})\s*mm\b`, "gi")), m => Number(m[1]));
+      const preferred = uniqueValue(values);
+      if (preferred === undefined || labels.length !== values.length) missing.push("targetMm");
+      else requirement.targetMm = preferred;
+    }
+  }
+}
+
 function positiveRange(match, scale = 1) {
   const low = Number(match[1]) * scale;
   const high = match[2] === undefined ? low : Number(match[2]) * scale;
@@ -78,10 +108,17 @@ export function compileFbsVerification(fbs = {}, { requirements = fbs.requiremen
   criteria = normalizedText(criteria);
   const sentences = `${requirements}\n${criteria}`.split(/[。;；!！?？\n]+|(?<=\.)\s+/);
   const targets = TARGETS.filter((target) => sentences.some((sentence) => requestsTarget(target, sentence)));
-  if (!targets.length) return undefined;
-
   const compiled = { requirements: [] };
-  if (targets.some((target) => target.kind !== "envelope")) {
+  // Explicit requests for review keep their original acceptance text, including unsupported checks.
+  for (const [source, text] of [["user-requirements", requirements], ["user-criteria", criteria]]) {
+    for (const match of text.matchAll(/(?:^|[。；;！!?？\n，,])\s*(?:必须人工复核|需人工确认)\s*[:：]?\s*([^。；;！!?？\n]+)/g)) {
+      const statement = match[1].trim();
+      if (statement) compiled.requirements.push({ id: `review-${compiled.requirements.length + 1}`,
+        kind: "design_review", statement, sourceIds: [source] });
+    }
+  }
+  if (!targets.length && !compiled.requirements.length) return undefined;
+  if (targets.some((target) => ["deflection", "stress"].includes(target.kind))) {
     const input = sentences.join(" ");
     const loadCase = {};
     if (CLAMP.test(input) && !OTHER_SUPPORT.test(input)) loadCase.support = "ideal_clamp";
@@ -97,12 +134,14 @@ export function compileFbsVerification(fbs = {}, { requirements = fbs.requiremen
 
   for (const target of targets) {
     const { kind, limitKey } = target;
-    const limit = acceptanceLimit(target, sentences.filter((sentence) => requestsTarget(target, sentence)));
+    const relevant = sentences.filter((sentence) => requestsTarget(target, sentence));
+    const limit = target.amount ? acceptanceLimit(target, relevant) : undefined;
     const requirement = { id: `fbs-${kind}`, kind, sourceIds: traceIds(fbs, target, requirements, criteria) };
     const missing = [];
-    if (limit === undefined) missing.push(limitKey);
-    else requirement[limitKey] = limit;
-    if (kind !== "envelope") {
+    if (limit !== undefined) requirement[limitKey] = limit;
+    applyBand(target, relevant, requirement, missing);
+    if (requirement[limitKey] === undefined) missing.push(limitKey);
+    if (kind === "deflection" || kind === "stress") {
       if (!compiled.loadCase.support) missing.push("loadCase.support");
       if (!compiled.loadCase.kind) missing.push("loadCase.kind");
       if (!compiled.loadCase.forceN) missing.push("loadCase.forceN");

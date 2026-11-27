@@ -1,0 +1,22 @@
+{
+  "format": "ai-cad-rl-beam-task-v1",
+  "id": "compliant-beam-in-a-fixture",
+  "search": {
+    "widthMm": { "min": 16, "max": 30, "step": 2 },
+    "thicknessMm": { "min": 5, "max": 11, "step": 1 }
+  },
+  "plan": {
+    "name": "compliant-beam",
+    "parts": [{ "id": "beam", "primitives": [{ "type": "box", "size": [120, 22, 6] }] }],
+    "engineeringVerification": {
+      "requirements": [
+        { "id": "housing", "kind": "envelope", "maxMm": [120, 30, 11] },
+        { "id": "fixture-width", "kind": "outside_width", "minMm": 20, "maxMm": 26 },
+        { "id": "working-travel", "kind": "deflection", "minMm": 0.14, "maxMm": 0.21, "targetMm": 0.165 },
+        { "id": "strength", "kind": "stress", "maxMPa": 16 }
+      ],
+      "loadCase": { "support": "ideal_clamp", "kind": "static_tip_force", "direction": "Z", "forceN": [18, 22] },
+      "material": { "youngMPa": [65000, 72000] }
+    }
+  }
+}

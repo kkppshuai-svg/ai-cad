@@ -40,6 +40,9 @@ AI-CAD 从用户消息提取验收目标、限值与工况，并把任务关联�
 目前包络与梁计算适用于沿坐标轴建模的单个实体。依赖导入 STEP 或外部标准件的候选会返回待确认，需要补充可核对的工件与版本证据。
 
 - `envelope.maxMm` 指定 X、Y、Z 三轴尺寸上限，单位 mm。
+- `outside_width` 的 `minMm` 和 `maxMm` 约束单实体沿 Y 的**整体外宽**。孔距、局部夹持宽度、公差叠加和装配干涉需要各自的几何或试验证据。
+- `deflection` 可指定 `minMm` 和 `maxMm` 作为工作挠度幅值范围。所有工况均在范围内才通过，预测区间完全落在范围外时失败，部分重合时待确认。`targetMm` 是允许范围内的优选值，可用于给合格候选排序。结构化 `loadCase.direction` 支持 `Z`、`+Z`、`-Z`，省略时沿用原模型的 Z 轴约定。
+- 对话可写“整体安装外宽范围 20 至 26 mm。工作挠度范围 0.14 至 0.21 mm，目标工作挠度 0.165 mm。”并补充梁计算所需的工况。写“必须人工复核：装配后扳手能否伸入。”会在报告中保留原句和来源，结论为待确认。
 - `deflection.maxMm` 或 `stress.maxMPa` 启用矩形悬臂梁计算。在同一 `engineeringVerification` 对象中提交 `loadCase`（`support: "ideal_clamp"`、`kind: "static_tip_force"`、`forceN`）与 `material.youngMPa`。力和弹性模量均可使用正数或 `[下界, 上界]`。
 - `use_trial.maxMm` 要求实际用途试验。填写 `useContext` 的 `environment`、`forceN`、`fixture`、`materialId`。提交方核对试件与测量后，在 `trialEvidence` 提交记录，每条包含同样的四个工况字段、报告中的 `designDigest`、`method: "physical_trial"`、`id`、`source`、`measuredMm` 和 `uncertaintyMm`。
 

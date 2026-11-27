@@ -38,7 +38,7 @@ def features(env):
     # Include current CAD evidence and relative action sizes, not task IDs or target solutions.
     w_step = bin_index(ratio_steps[0], (1.03, 1.07, 1.12, 1.20))
     t_step = bin_index(ratio_steps[1], (1.04, 1.08, 1.14, 1.23))
-    return (
+    encoded = (
         "bias", f"status:{best},{current}", f"margin:{worst}", f"deflection:{d}", f"stress:{s}",
         f"envelope:{e}", f"room:{w_left},{t_left}", f"width:{w_rel}", f"thickness:{t_rel}",
         f"margin-position:{worst},{w_rel},{t_rel}", f"limit-room:{d},{s},{w_left},{t_left}",
@@ -46,6 +46,15 @@ def features(env):
         f"remaining:{steps},{best},{worst}", f"gap:{gap},{current}",
         f"step-size:{worst},{w_step},{t_step}", f"mask:{sum(1 << a for a in env.actions())},{worst}",
     )
+    if c.bands:
+        margins, error = c.fit()
+        wl, wh, dl, dh = (bin_index(v, ratio_bins) for v in margins)
+        sides = tuple(sorted((sum(e["interval"]) / 2 > e["targetMm"])
+                             for _, e in c.bands if "targetMm" in e))
+        miss = bin_index(error, (0.1, 0.25, 0.5, 1, 2)) if error is not None else -1
+        encoded += (f"mount:{wl},{wh}", f"travel:{dl},{dh}", f"target:{sides},{miss}",
+                    f"fit-action:{wl},{wh},{dl},{dh}", f"fit-status:{current},{sides},{miss}")
+    return encoded
 
 
 class QPolicy:
@@ -88,12 +97,12 @@ class QPolicy:
         return cls(weights)
 
 
-def train(episodes, tasks, seed, steps, *, policy=None, additional_tasks=()):
+def train(episodes, tasks, seed, steps, *, policy=None, additional_tasks=(), suite_name="material"):
     if (not 1 <= episodes <= 1_000_000 or not 0 <= tasks <= 20_000
             or not 1 <= tasks + len(additional_tasks) <= 20_000):
         raise ValueError("invalid number of training episodes or tasks")
     rng = random.Random(seed)
-    suite = [BeamEnv(task, max_steps=steps) for task in benchmark_tasks("train", tasks, TRAIN_SEED)]
+    suite = [BeamEnv(task, max_steps=steps) for task in benchmark_tasks("train", tasks, TRAIN_SEED, suite_name)]
     suite.extend(BeamEnv(task, max_steps=steps) for task in additional_tasks)
     policy = policy if policy is not None else QPolicy()
     history, returns = [], []
@@ -117,7 +126,7 @@ def train(episodes, tasks, seed, steps, *, policy=None, additional_tasks=()):
             history.append({"episode": i + 1, "epsilon": round(epsilon, 4),
                             "meanReturn": mean(returns), "passRate": passes / len(returns)})
             returns, passes = [], 0
-    return policy, {"episodes": episodes, "trainTasks": tasks, "customTasks": len(additional_tasks),
+    return policy, {"episodes": episodes, "suite": suite_name, "trainTasks": tasks, "customTasks": len(additional_tasks),
                     "seed": seed, "trainTaskSeed": TRAIN_SEED,
                     "maxSteps": steps, "updates": updates, "distinctCandidateEvaluations": sum(len(env.cache) for env in suite),
                     "learningCurve": history}
@@ -143,22 +152,23 @@ def greedy_physics(env, actions):
 
     def projection(action):
         if action == 4:
-            return 0, env.best.volume, action
+            return 0, *env.best.rank, action
         wi, ti = env.neighbor(action)
         w, t = env.axes[0][wi], env.axes[1][ti]
         w_scale, t_scale = c.size[1] / w, c.size[2] / t
         ratio = max(c.deflection_ratio * w_scale * t_scale ** 3, c.stress_ratio * w_scale * t_scale ** 2,
                     *(a / b for limit in limits for a, b in zip((env.length, w, t), limit)))
-        return (max(0, ratio - 1 - 1e-12), env.length * w * t, action)
+        margins, error = c.fit(w / c.size[1], w_scale * t_scale ** 3)
+        return (max(0, max(ratio, *margins) - 1 - 1e-12), error or 0, env.length * w * t, action)
 
     return min(actions, key=projection)
 
 
-def benchmark(policy, tasks, steps):
+def benchmark(policy, tasks, steps, suite_name="material"):
     if not 1 <= tasks <= 20_000:
         raise ValueError("invalid number of evaluation tasks")
     rows = []
-    for index, task in enumerate(benchmark_tasks("test", tasks, TEST_SEED)):
+    for index, task in enumerate(benchmark_tasks("test", tasks, TEST_SEED, suite_name)):
         rng = random.Random(TEST_SEED + index + 1)
         env = BeamEnv(task, max_steps=steps)
         row = {"taskId": task["id"], "task": task, "initialReport": env.candidate(env.start).report, "results": {}}
@@ -168,6 +178,7 @@ def benchmark(policy, tasks, steps):
         ):
             best = rollout(env, choose)
             row["results"][name] = {"passed": best is not None, "sizeMm": best.size if best else None,
+                                    "normalizedTargetError": best.fit()[1] if best else None,
                                     "volumeMm3": best.volume if best else None,
                                     "volumeFraction": best.volume / env.reference_volume if best else None,
                                     "candidateEvaluations": len(env.seen), "trace": env.trace}
@@ -176,21 +187,27 @@ def benchmark(policy, tasks, steps):
     for name in rows[0]["results"]:
         results = [row["results"][name] for row in rows]
         passed = [r for r in results if r["passed"]]
+        errors = [r["normalizedTargetError"] for r in passed if r["normalizedTargetError"] is not None]
         summaries[name] = {"passed": len(passed), "passRate": len(passed) / tasks,
+                           "meanNormalizedTargetErrorOnPasses": mean(errors) if errors else None,
                            "meanVerifiedVolumeFraction": mean(r["volumeFraction"] for r in passed) if passed else None,
                            "meanCandidateEvaluations": mean(r["candidateEvaluations"] for r in results)}
     paired = {}
     for name in ("noEdit", "random", "fixedOrder", "greedyPhysics"):
         common, deltas = 0, []
+        target_gains = []
         learned_only = baseline_only = 0
         for row in rows:
             learned, baseline = (row["results"][k] for k in ("learned", name))
             if learned["passed"] and baseline["passed"]:
                 common += 1
                 deltas.append(1 - learned["volumeMm3"] / baseline["volumeMm3"])
+                if learned["normalizedTargetError"] is not None:
+                    target_gains.append(baseline["normalizedTargetError"] - learned["normalizedTargetError"])
             learned_only += learned["passed"] and not baseline["passed"]
             baseline_only += baseline["passed"] and not learned["passed"]
         paired[name] = {"bothPassed": common, "learnedOnlyPassed": learned_only, "baselineOnlyPassed": baseline_only,
+                        "meanNormalizedTargetErrorReductionOnCommonPasses": mean(target_gains) if target_gains else None,
                         "meanLearnedVolumeSavingsOnCommonPasses": mean(deltas) if deltas else None}
-    return {"format": "ai-cad-rl-benchmark-v1", "testTasks": tasks, "testTaskSeed": TEST_SEED,
+    return {"format": "ai-cad-rl-benchmark-v1", "suite": suite_name, "testTasks": tasks, "testTaskSeed": TEST_SEED,
             "maxEditSteps": steps, "summary": summaries, "learnedVsBaseline": paired, "cases": rows}

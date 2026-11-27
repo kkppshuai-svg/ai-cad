@@ -10,12 +10,16 @@ import sys
 
 METHODS = {
     "envelope": ("verification", "cad_brep_bounds"),
+    "outside_width": ("verification", "cad_brep_y_span"),
+    "mount_fixture": ("verification", "pin_sweep_and_washer_seat"),
     "deflection": ("verification", "cantilever_analysis"),
     "stress": ("verification", "cantilever_analysis"),
     "use_trial": ("validation", "physical_trial"),
 }
 MISSING_INPUTS = {
     "maxMm": "允许的尺寸或挠度上限（mm）",
+    "minMm": "工程要求给出的下限（mm）",
+    "targetMm": "所声明的优选工作挠度（mm）",
     "maxMPa": "允许应力上限（MPa）",
     "loadCase.support": "装夹方式（例如一端理想固支）",
     "loadCase.kind": "载荷位置、方向与类型（例如自由端沿 Z 方向的静载）",
@@ -47,6 +51,14 @@ def upper_limit(interval, limit):
     if interval[1] <= limit:
         return "pass"
     if interval[0] > limit:
+        return "fail"
+    return "hold"
+
+
+def within_band(interval, minimum, maximum):
+    if interval[0] >= minimum and interval[1] <= maximum:
+        return "pass"
+    if interval[1] < minimum or interval[0] > maximum:
         return "fail"
     return "hold"
 
@@ -149,6 +161,8 @@ def calculation(case, geometry, mode):
     if force is None or young is None:
         return None, "missing_force_or_modulus", "提供正值的载荷与弹性模量范围。"
     if mode == "agent":
+        if load.get("direction", "Z") not in ("Z", "+Z", "-Z"):
+            return None, "load_direction_out_of_scope", "此方法计算沿 Z 的挠度幅值。请提供适用于所声明方向的计算或试验证据。"
         if (load.get("support"), load.get("kind")) != ("ideal_clamp", "static_tip_force"):
             return None, "load_model_mismatch", "提供固支端静载模型，或选择适合该工况的计算方法。"
         if not is_rectangular_beam(case["design"], geometry):
@@ -216,7 +230,27 @@ def trial_claim(case, limit, digest, mode):
     return claim("pass", "applicable_trials_within_limit", evidence)
 
 
-def evaluate(case, mode="agent", *, build_part=None, geometry_reports=None):
+def mount_fixture_claim(case, requirement, located_entries):
+    from structure_rl import checked, fixture_evidence, fixture_checks
+    parts = case["design"].get("parts", [])
+    if len(parts) != 1 or not located_entries or len(located_entries) != 1:
+        return claim("hold", "placed_mount_geometry_required", action="构建单实体安装板并提供当前装配位置的 BRep。")
+    plate = located_entries[0]["shape"]
+    try:
+        pitch,count,travel,seat = checked(requirement["fixture"])
+        box = plate.val().BoundingBox()
+        if abs(box.zmax - 2) > 1e-7 or abs(box.zmin + 2) > 1e-7 or plate.faces(">Z").size() != 1:
+            return claim("hold", "fixture_datum_out_of_scope", action="该夹具定义要求板面位于 Z=±2 mm。")
+        pins = [(x,y) for x in [-pitch/2,pitch/2][:int(count)//2] for y in [-pitch/2,pitch/2]]
+        evidence = fixture_evidence(plate,pins,travel)
+        checks = fixture_checks(evidence,seat)
+        return claim("pass" if all(checks.values()) else "fail", "mount_fixture_checked",
+                     {**evidence,"checks":checks,"fixture":requirement["fixture"]})
+    except (KeyError, TypeError, ValueError, RuntimeError, ArithmeticError) as exc:
+        return claim("hold", "fixture_check_unavailable", {"reason":str(exc)})
+
+
+def evaluate(case, mode="agent", *, build_part=None, geometry_reports=None, located_entries=None):
     if mode not in MODES:
         raise ValueError(f"unknown evaluation mode: {mode}")
     design = case["design"]
@@ -230,7 +264,7 @@ def evaluate(case, mode="agent", *, build_part=None, geometry_reports=None):
             raise ValueError(f"invalid stage for requirement {item['id']}")
     claims = {"verification": [], "validation": []}
     kinds = {item["kind"] for item in requirements if not item.get("missing")}
-    needs_geometry = bool(kinds & {"envelope", "stress", "deflection"})
+    needs_geometry = bool(kinds & {"envelope", "outside_width", "stress", "deflection"})
     geometry, error = None, None
     if needs_geometry:
         if geometry_reports is None:
@@ -251,7 +285,22 @@ def evaluate(case, mode="agent", *, build_part=None, geometry_reports=None):
             action = "请补充：" + "、".join(MISSING_INPUTS[field] for field in missing) + "。"
             result = claim("hold", "engineering_inputs_missing", {"missingInputs": missing}, action)
         elif method is None:
-            result = claim("hold", "no_supported_method", action="人工确认该要求的验收方法与所需证据。")
+            statement = requirement.get("statement")
+            result = claim("hold", "no_supported_method",
+                           {"statement": statement} if isinstance(statement, str) else None,
+                           action="人工确认该要求的验收方法与所需证据。")
+        elif kind == "mount_fixture":
+            result = mount_fixture_claim(case, requirement, located_entries)
+        elif kind == "outside_width":
+            lower = requirement.get("minMm")
+            if not finite_number(lower, zero=True) or not finite_number(limit) or lower > limit:
+                result = claim("hold", "invalid_width_band", action="补充整体 Y 向安装外宽的上下限，单位 mm。")
+            elif error:
+                result = claim("fail" if error == "invalid_brep" else "hold", error, geometry)
+            else:
+                width = geometry["dimensionsMm"][1]
+                result = claim(within_band([width, width], lower, limit), "brep_width_compared",
+                               {"measuredMm": width, "minMm": lower, "maxMm": limit})
         elif kind == "envelope":
             if not isinstance(limit, list) or len(limit) != 3 or not all(finite_number(v) for v in limit):
                 raise ValueError("envelope maxMm must contain three positive limits")
@@ -265,6 +314,22 @@ def evaluate(case, mode="agent", *, build_part=None, geometry_reports=None):
             raise ValueError(f"invalid limit for requirement {requirement['id']}")
         elif kind == "use_trial":
             result = trial_claim(case, limit, digest, mode)
+        elif kind == "deflection" and ("minMm" in requirement or "targetMm" in requirement):
+            lower = requirement.get("minMm", 0)
+            target = requirement.get("targetMm")
+            if (not finite_number(lower, zero=True) or lower > limit or ("targetMm" in requirement and
+                    (not finite_number(target, zero=True) or not lower <= target <= limit))):
+                result = claim("hold", "invalid_deflection_band", action="请核对工作挠度上下限和可选的优选值。")
+            elif analysis[0] is None:
+                result = claim("hold", analysis[1], geometry, analysis[2])
+            else:
+                interval = analysis[0]["deflection"]
+                evidence = {"interval": interval, "minMm": lower, "maxMm": limit, "unit": "mm",
+                            "forceN": analysis[0]["forceN"], "youngMPa": analysis[0]["youngMPa"]}
+                if target is not None:
+                    evidence["targetMm"] = target
+                    evidence["worstTargetErrorMm"] = max(abs(value - target) for value in interval)
+                result = claim(within_band(interval, lower, limit), "working_deflection_compared", evidence)
         elif analysis[0] is None:
             result = claim("hold", analysis[1], geometry, analysis[2])
         else:
@@ -322,7 +387,7 @@ def manifest_hold(reason, action, *, digest=None, details=None):
     }
 
 
-def evaluate_manifest(manifest, geometry_reports):
+def evaluate_manifest(manifest, geometry_reports, located_entries=None):
     if "engineeringVerification" not in manifest:
         return None
     design = manifest_design(manifest)
@@ -340,7 +405,7 @@ def evaluate_manifest(manifest, geometry_reports):
     fields = ("id", "source", "requirements", "loadCase", "material", "useContext", "trialEvidence")
     case = {**{field: contract[field] for field in fields if field in contract}, "design": design}
     try:
-        report = evaluate(case, geometry_reports=geometry_reports)
+        report = evaluate(case, geometry_reports=geometry_reports, located_entries=located_entries)
         json.dumps(report, allow_nan=False)
     except (ArithmeticError, AttributeError, KeyError, TypeError, ValueError) as exc:
         return manifest_hold("invalid_engineering_verification_contract", "检查验证需求、单位、工况和证据字段。",

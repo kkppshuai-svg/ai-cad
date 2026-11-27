@@ -79,6 +79,10 @@ CadQuery 会从 `message` 中识别由 FBS 追踪的包络、挠度或应力要�
 
 初次候选的自动工程验证返回 `hold` 时，保留同一 `conversationId`，再次调用 `/api/chat`。在 `message` 中用 `补充验收：` 或 `补充验收条件：` 开头，后面写入报告所需的工况或限值。服务复用保存的特征计划进行复验。
 
+工程合同还支持 `outside_width` 的整体 Y 向安装外宽范围以及 `deflection` 的工作行程范围和优选挠度。报告在对应 claim 中给出 BRep 实测值或计算区间。明确要求人工复核的事项保留原始判据和来源。[工程合同字段与对话示例](autonomous-engineering-verification.md)
+
+`mount_fixture` 的 `fixture` 对象使用结构训练示例中的孔距、销数、行程和有效压紧面积比例。CadQuery 构建时使用当前修订已定位的实体复验。适用范围为板面在 Z=±2 mm、销沿 X 相对平移的指定夹具。[夹具定义](../examples/rl-adjustable-mount.json)
+
 ### 停止当前规划
 
 ```json

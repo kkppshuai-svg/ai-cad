@@ -36,6 +36,8 @@ def suggest(policy, task, steps):
         "decision": "verified_candidate" if best else "no_verified_candidate",
         "initialReport": initial.report, "initialSizeMm": initial.size,
         "candidate": ({"plan": best.plan, "sizeMm": best.size, "volumeMm3": best.volume,
+                       "rankingObjective": "working_deflection_target" if best.fit()[1] is not None else "volume",
+                       "normalizedTargetError": best.fit()[1],
                        "report": best.report, "changed": best.coordinate != env.start} if best else None),
         "lastReport": env.current.report, "candidateEvaluations": len(env.seen), "trace": env.trace,
     }
@@ -47,6 +49,7 @@ def main(argv=None):
     training = commands.add_parser("train", help="learn policy weights from CadQuery verification rewards")
     training.add_argument("--episodes", type=int, default=6000)
     training.add_argument("--tasks", type=int, default=200)
+    training.add_argument("--suite", choices=("fit", "material"), help="default: fit, or the resumed suite")
     training.add_argument("--seed", type=int, default=42)
     training.add_argument("--steps", type=int, default=8)
     training.add_argument("--task-file", type=Path, help="optional real beam task or JSON array of tasks")
@@ -55,6 +58,7 @@ def main(argv=None):
     testing = commands.add_parser("evaluate", help="compare a frozen policy with baselines on held-out cases")
     testing.add_argument("--model", type=Path, required=True)
     testing.add_argument("--tasks", type=int, default=120)
+    testing.add_argument("--suite", choices=("fit", "material"), help="default: checkpoint training suite")
     testing.add_argument("--steps", type=int)
     testing.add_argument("--out", type=Path, required=True)
     proposing = commands.add_parser("suggest", help="export a verified candidate, never promote a revision")
@@ -73,7 +77,8 @@ def main(argv=None):
             additions = task_file(args.task_file) if args.task_file else []
             policy, metrics = train(args.episodes, args.tasks, args.seed, args.steps,
                                     policy=QPolicy.load(previous) if previous is not None else None,
-                                    additional_tasks=additions)
+                                    additional_tasks=additions, suite_name=args.suite or prior_metrics.get(
+                                        "suite", "material" if previous else "fit"))
             metrics["totalEpisodes"] = prior_metrics.get("totalEpisodes", 0) + metrics["episodes"]
             metrics["totalUpdates"] = prior_metrics.get("totalUpdates", 0) + metrics["updates"]
             metrics["builtInTrainingOnly"] = not additions and (
@@ -88,7 +93,7 @@ def main(argv=None):
             if type(steps) is not int or not 1 <= steps <= MAX_STEPS:
                 raise ValueError(f"steps must be between 1 and {MAX_STEPS}")
             if args.command == "evaluate":
-                report = benchmark(policy, args.tasks, steps)
+                report = benchmark(policy, args.tasks, steps, args.suite or data.get("training", {}).get("suite", "material"))
                 report["disjointByConstruction"] = data.get("training", {}).get("builtInTrainingOnly") is True
                 summary = {key: report[key] for key in ("disjointByConstruction", "summary", "learnedVsBaseline")}
             else:
