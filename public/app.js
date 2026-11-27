@@ -229,6 +229,10 @@ async function restoreTrainingCheckpoint() {
 }
 
 function wireEvents() {
+  document.querySelector("#mountExploreBtn").addEventListener("click", () => {
+    if (!els.chatInput.value.trim()) els.chatInput.value = '/安装板 {"pitchMm":23,"pinCount":2,"travelMm":6,"minSeatFraction":0.65}';
+    els.chatInput.focus();
+  });
   els.chatForm.addEventListener("submit", (event) => {
     event.preventDefault();
     sendChat();
@@ -437,7 +441,7 @@ async function sendChat() {
   const images = state.pendingImages.slice();
   const trainingRequested = state.trainingMode;
   if (!message && !images.length) return;
-  if (state.previewEngine === "usd-brep") return sendNativeChat(message, images);
+  if (state.previewEngine === "usd-brep" && !/^\/安装板(?:\s|$)/u.test(message)) return sendNativeChat(message, images);
 
   pushMessage("user", images.length ? `${message || "（识别参考图片建模）"}\n📷 附带 ${images.length} 张参考图` : message);
   els.chatInput.value = "";
@@ -495,6 +499,14 @@ async function sendChat() {
     pushMessage("assistant", candidateDecision
       ? `本次修改${candidateDecision === "hold" ? "需补充工程证据" : "未满足工程要求"}，当前继续使用原版本。候选结果见统一审查。`
       : result.reply || "装配已生成。");
+    if (result.exploration) {
+      els.log.textContent = JSON.stringify(result.exploration, null, 2);
+      if (result.assembly) await applyPlan(result.plan, result.assembly);
+      updateProcessTrace("build","完成","已分别试建两种结构");
+      updateProcessTrace("validate",result.assembly ? "完成" : "失败",result.reply);
+      updateProcessTrace("deliver",result.assembly ? "完成" : "已停止",result.assembly ? "候选已构建，可提交人工评分" : "无合格候选");
+      return;
+    }
     await applyPlan(result.plan, result.assembly);
     const engineeringDecision = candidateDecision || engineeringBlock(result.assembly);
     if (engineeringDecision) {

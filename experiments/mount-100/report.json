@@ -1,0 +1,4027 @@
+{
+  "trainingGroups": 100,
+  "replayedGroups": 0,
+  "updates": 200,
+  "heldOut": 32,
+  "before": {
+    "passed": 20,
+    "totalReward": 27.137255066452216
+  },
+  "after": {
+    "passed": 20,
+    "totalReward": 27.137255066452216
+  },
+  "promote": false,
+  "training": [
+    {
+      "task": {
+        "pitchMm": 16.25,
+        "pinCount": 2,
+        "travelMm": 0,
+        "minSeatFraction": 0.6
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.9999999999999999,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": true
+          },
+          "passed": true,
+          "reward": 2.0
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.7221104168236746,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": true
+          },
+          "passed": true,
+          "reward": 1.7221104168236745
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 16.25,
+        "pinCount": 2,
+        "travelMm": 4,
+        "minSeatFraction": 0.72
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 55.41797753346275,
+          "minEndSeatFraction": 0.8660002823862386,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": true
+          },
+          "passed": false,
+          "reward": -1
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.7845461831679155,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": true
+          },
+          "passed": true,
+          "reward": 1.7845461831679155
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 16.25,
+        "pinCount": 4,
+        "travelMm": 0,
+        "minSeatFraction": 0.82
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.9999999999999996,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": true
+          },
+          "passed": true,
+          "reward": 1.9999999999999996
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 50.265482457436676,
+          "minEndSeatFraction": 0.7221104168236746,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": false
+          },
+          "passed": false,
+          "reward": -1
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 16.25,
+        "pinCount": 4,
+        "travelMm": 4,
+        "minSeatFraction": 0.92
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 55.41797753346276,
+          "minEndSeatFraction": 0.8660002823862384,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": false
+          },
+          "passed": false,
+          "reward": -1
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 114.26548245743668,
+          "minEndSeatFraction": 0.7845461831679155,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": false
+          },
+          "passed": false,
+          "reward": -1
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 17.25,
+        "pinCount": 2,
+        "travelMm": 0,
+        "minSeatFraction": 0.72
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.9999999999999999,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": true
+          },
+          "passed": true,
+          "reward": 2.0
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.7221104168236746,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": true
+          },
+          "passed": true,
+          "reward": 1.7221104168236745
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 17.25,
+        "pinCount": 2,
+        "travelMm": 5,
+        "minSeatFraction": 0.82
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 71.41797753346276,
+          "minEndSeatFraction": 0.8361787322833881,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": true
+          },
+          "passed": false,
+          "reward": -1
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.7842362944281009,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": false
+          },
+          "passed": false,
+          "reward": -1
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 17.25,
+        "pinCount": 4,
+        "travelMm": 0,
+        "minSeatFraction": 0.92
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.9999999999999996,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": true
+          },
+          "passed": true,
+          "reward": 1.9999999999999996
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 50.265482457436676,
+          "minEndSeatFraction": 0.7221104168236746,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": false
+          },
+          "passed": false,
+          "reward": -1
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 17.25,
+        "pinCount": 4,
+        "travelMm": 5,
+        "minSeatFraction": 0.6
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 71.41797753346276,
+          "minEndSeatFraction": 0.8361787322833797,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": true
+          },
+          "passed": false,
+          "reward": -1
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 130.2654824574367,
+          "minEndSeatFraction": 0.7842362944281009,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": true
+          },
+          "passed": false,
+          "reward": -1
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 18.25,
+        "pinCount": 2,
+        "travelMm": 0,
+        "minSeatFraction": 0.82
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.9999999999999999,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": true
+          },
+          "passed": true,
+          "reward": 2.0
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.7221104168236746,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": false
+          },
+          "passed": false,
+          "reward": -1
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 18.25,
+        "pinCount": 2,
+        "travelMm": 6,
+        "minSeatFraction": 0.92
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 87.41797753346276,
+          "minEndSeatFraction": 0.8141784905575535,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": false
+          },
+          "passed": false,
+          "reward": -1
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.7842362944281009,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": false
+          },
+          "passed": false,
+          "reward": -1
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 18.25,
+        "pinCount": 4,
+        "travelMm": 0,
+        "minSeatFraction": 0.6
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.9999999999999996,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": true
+          },
+          "passed": true,
+          "reward": 1.9999999999999996
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 50.265482457436676,
+          "minEndSeatFraction": 0.7221104168236746,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": true
+          },
+          "passed": false,
+          "reward": -1
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 18.25,
+        "pinCount": 4,
+        "travelMm": 6,
+        "minSeatFraction": 0.72
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 87.41797753346276,
+          "minEndSeatFraction": 0.8141784905575535,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": true
+          },
+          "passed": false,
+          "reward": -1
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 146.2654824574367,
+          "minEndSeatFraction": 0.7842362944281009,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": true
+          },
+          "passed": false,
+          "reward": -1
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 19.25,
+        "pinCount": 2,
+        "travelMm": 0,
+        "minSeatFraction": 0.92
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.9999999999999999,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": true
+          },
+          "passed": true,
+          "reward": 2.0
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.7221104168236746,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": false
+          },
+          "passed": false,
+          "reward": -1
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 19.25,
+        "pinCount": 2,
+        "travelMm": 7,
+        "minSeatFraction": 0.6
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 103.41797753346275,
+          "minEndSeatFraction": 0.8160713764102575,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": true
+          },
+          "passed": false,
+          "reward": -1
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.7842362944281009,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": true
+          },
+          "passed": true,
+          "reward": 1.784236294428101
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 19.25,
+        "pinCount": 4,
+        "travelMm": 0,
+        "minSeatFraction": 0.72
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.9999999999999996,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": true
+          },
+          "passed": true,
+          "reward": 1.9999999999999996
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 50.265482457436676,
+          "minEndSeatFraction": 0.7221104168236746,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": true
+          },
+          "passed": false,
+          "reward": -1
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 19.25,
+        "pinCount": 4,
+        "travelMm": 7,
+        "minSeatFraction": 0.82
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 103.41797753346275,
+          "minEndSeatFraction": 0.8160713764102568,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": false
+          },
+          "passed": false,
+          "reward": -1
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 162.2654824574367,
+          "minEndSeatFraction": 0.7842362944281009,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": false
+          },
+          "passed": false,
+          "reward": -1
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 20.25,
+        "pinCount": 2,
+        "travelMm": 0,
+        "minSeatFraction": 0.6
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.9999999999999999,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": true
+          },
+          "passed": true,
+          "reward": 2.0
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.7221104168236746,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": true
+          },
+          "passed": true,
+          "reward": 1.7221104168236745
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 20.25,
+        "pinCount": 2,
+        "travelMm": 8,
+        "minSeatFraction": 0.72
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 119.41797753346276,
+          "minEndSeatFraction": 0.8301472917094285,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": true
+          },
+          "passed": false,
+          "reward": -1
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.7842362944281009,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": true
+          },
+          "passed": true,
+          "reward": 1.784236294428101
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 20.25,
+        "pinCount": 4,
+        "travelMm": 0,
+        "minSeatFraction": 0.82
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.9999999999999998,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": true
+          },
+          "passed": true,
+          "reward": 1.9999999999999998
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 50.26548245743669,
+          "minEndSeatFraction": 0.7221104168236746,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": false
+          },
+          "passed": false,
+          "reward": -1
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 20.25,
+        "pinCount": 4,
+        "travelMm": 8,
+        "minSeatFraction": 0.92
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 119.41797753346276,
+          "minEndSeatFraction": 0.8301472917094285,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": false
+          },
+          "passed": false,
+          "reward": -1
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 178.26548245743666,
+          "minEndSeatFraction": 0.7842362944281009,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": false
+          },
+          "passed": false,
+          "reward": -1
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 21.25,
+        "pinCount": 2,
+        "travelMm": 0,
+        "minSeatFraction": 0.72
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.9999999999999998,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": true
+          },
+          "passed": true,
+          "reward": 1.9999999999999998
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.7221104168236745,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": true
+          },
+          "passed": true,
+          "reward": 1.7221104168236745
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 21.25,
+        "pinCount": 2,
+        "travelMm": 9,
+        "minSeatFraction": 0.82
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 135.41797753346276,
+          "minEndSeatFraction": 0.8567827080258302,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": true
+          },
+          "passed": false,
+          "reward": -1
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.784236294428101,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": false
+          },
+          "passed": false,
+          "reward": -1
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 21.25,
+        "pinCount": 4,
+        "travelMm": 0,
+        "minSeatFraction": 0.92
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.9999999999999998,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": true
+          },
+          "passed": true,
+          "reward": 1.9999999999999998
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 50.26548245743669,
+          "minEndSeatFraction": 0.7221104168236745,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": false
+          },
+          "passed": false,
+          "reward": -1
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 21.25,
+        "pinCount": 4,
+        "travelMm": 9,
+        "minSeatFraction": 0.6
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 135.41797753346276,
+          "minEndSeatFraction": 0.8567827080258302,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": true
+          },
+          "passed": false,
+          "reward": -1
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 194.2654824574367,
+          "minEndSeatFraction": 0.784236294428101,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": true
+          },
+          "passed": false,
+          "reward": -1
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 22.25,
+        "pinCount": 2,
+        "travelMm": 0,
+        "minSeatFraction": 0.82
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.9999999999999998,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": true
+          },
+          "passed": true,
+          "reward": 1.9999999999999998
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.7221104168236745,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": false
+          },
+          "passed": false,
+          "reward": -1
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 22.25,
+        "pinCount": 2,
+        "travelMm": 4,
+        "minSeatFraction": 0.92
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 55.41797753346276,
+          "minEndSeatFraction": 0.8660002823862385,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": false
+          },
+          "passed": false,
+          "reward": -1
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.7845461831679157,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": false
+          },
+          "passed": false,
+          "reward": -1
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 22.25,
+        "pinCount": 4,
+        "travelMm": 0,
+        "minSeatFraction": 0.6
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.9999999999999998,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": true
+          },
+          "passed": true,
+          "reward": 1.9999999999999998
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 50.26548245743669,
+          "minEndSeatFraction": 0.7221104168236745,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": true
+          },
+          "passed": false,
+          "reward": -1
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 22.25,
+        "pinCount": 4,
+        "travelMm": 4,
+        "minSeatFraction": 0.72
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 55.41797753346276,
+          "minEndSeatFraction": 0.8660002823862384,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": true
+          },
+          "passed": false,
+          "reward": -1
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 114.26548245743668,
+          "minEndSeatFraction": 0.7845461831679157,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": true
+          },
+          "passed": false,
+          "reward": -1
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 23.25,
+        "pinCount": 2,
+        "travelMm": 0,
+        "minSeatFraction": 0.92
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.9999999999999998,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": true
+          },
+          "passed": true,
+          "reward": 1.9999999999999998
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.7221104168236745,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": false
+          },
+          "passed": false,
+          "reward": -1
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 23.25,
+        "pinCount": 2,
+        "travelMm": 5,
+        "minSeatFraction": 0.6
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 71.41797753346276,
+          "minEndSeatFraction": 0.8361787322833881,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": true
+          },
+          "passed": false,
+          "reward": -1
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.7842362944281009,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": true
+          },
+          "passed": true,
+          "reward": 1.784236294428101
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 23.25,
+        "pinCount": 4,
+        "travelMm": 0,
+        "minSeatFraction": 0.72
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.9999999999999998,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": true
+          },
+          "passed": true,
+          "reward": 1.9999999999999998
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 50.26548245743669,
+          "minEndSeatFraction": 0.7221104168236745,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": true
+          },
+          "passed": false,
+          "reward": -1
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 23.25,
+        "pinCount": 4,
+        "travelMm": 5,
+        "minSeatFraction": 0.82
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 71.41797753346276,
+          "minEndSeatFraction": 0.8361787322833877,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": true
+          },
+          "passed": false,
+          "reward": -1
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 130.2654824574367,
+          "minEndSeatFraction": 0.7842362944281009,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": false
+          },
+          "passed": false,
+          "reward": -1
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 24.25,
+        "pinCount": 2,
+        "travelMm": 0,
+        "minSeatFraction": 0.6
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.9999999999999998,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": true
+          },
+          "passed": true,
+          "reward": 1.9999999999999998
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.7221104168236745,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": true
+          },
+          "passed": true,
+          "reward": 1.7221104168236745
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 24.25,
+        "pinCount": 2,
+        "travelMm": 6,
+        "minSeatFraction": 0.72
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 87.41797753346276,
+          "minEndSeatFraction": 0.8141784905575538,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": true
+          },
+          "passed": false,
+          "reward": -1
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.7842362944281009,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": true
+          },
+          "passed": true,
+          "reward": 1.784236294428101
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 24.25,
+        "pinCount": 4,
+        "travelMm": 0,
+        "minSeatFraction": 0.82
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.9999999999999998,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": true
+          },
+          "passed": true,
+          "reward": 1.9999999999999998
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 50.26548245743669,
+          "minEndSeatFraction": 0.7221104168236745,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": false
+          },
+          "passed": false,
+          "reward": -1
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 24.25,
+        "pinCount": 4,
+        "travelMm": 6,
+        "minSeatFraction": 0.92
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 87.41797753346276,
+          "minEndSeatFraction": 0.8141784905575538,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": false
+          },
+          "passed": false,
+          "reward": -1
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 146.2654824574367,
+          "minEndSeatFraction": 0.7842362944281009,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": false
+          },
+          "passed": false,
+          "reward": -1
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 25.25,
+        "pinCount": 2,
+        "travelMm": 0,
+        "minSeatFraction": 0.72
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.9999999999999998,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": true
+          },
+          "passed": true,
+          "reward": 1.9999999999999998
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.7221104168236745,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": true
+          },
+          "passed": true,
+          "reward": 1.7221104168236745
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 25.25,
+        "pinCount": 2,
+        "travelMm": 7,
+        "minSeatFraction": 0.82
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 103.41797753346275,
+          "minEndSeatFraction": 0.816071376410257,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": false
+          },
+          "passed": false,
+          "reward": -1
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.7842362944281003,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": false
+          },
+          "passed": false,
+          "reward": -1
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 25.25,
+        "pinCount": 4,
+        "travelMm": 0,
+        "minSeatFraction": 0.92
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.9999999999999998,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": true
+          },
+          "passed": true,
+          "reward": 1.9999999999999998
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 50.26548245743669,
+          "minEndSeatFraction": 0.7221104168236745,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": false
+          },
+          "passed": false,
+          "reward": -1
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 25.25,
+        "pinCount": 4,
+        "travelMm": 7,
+        "minSeatFraction": 0.6
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 103.41797753346276,
+          "minEndSeatFraction": 0.816071376410257,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": true
+          },
+          "passed": false,
+          "reward": -1
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 162.2654824574367,
+          "minEndSeatFraction": 0.7842362944281003,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": true
+          },
+          "passed": false,
+          "reward": -1
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 26.25,
+        "pinCount": 2,
+        "travelMm": 0,
+        "minSeatFraction": 0.82
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.9999999999999998,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": true
+          },
+          "passed": true,
+          "reward": 1.9999999999999998
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.7221104168236745,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": false
+          },
+          "passed": false,
+          "reward": -1
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 26.25,
+        "pinCount": 2,
+        "travelMm": 8,
+        "minSeatFraction": 0.92
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 119.41797753346276,
+          "minEndSeatFraction": 0.8301472917094285,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": false
+          },
+          "passed": false,
+          "reward": -1
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.7842362944281003,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": false
+          },
+          "passed": false,
+          "reward": -1
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 26.25,
+        "pinCount": 4,
+        "travelMm": 0,
+        "minSeatFraction": 0.6
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.9999999999999998,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": true
+          },
+          "passed": true,
+          "reward": 1.9999999999999998
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 50.26548245743669,
+          "minEndSeatFraction": 0.7221104168236745,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": true
+          },
+          "passed": false,
+          "reward": -1
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 26.25,
+        "pinCount": 4,
+        "travelMm": 8,
+        "minSeatFraction": 0.72
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 119.41797753346276,
+          "minEndSeatFraction": 0.8301472917094285,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": true
+          },
+          "passed": false,
+          "reward": -1
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 178.26548245743666,
+          "minEndSeatFraction": 0.7842362944281003,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": true
+          },
+          "passed": false,
+          "reward": -1
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 27.25,
+        "pinCount": 2,
+        "travelMm": 0,
+        "minSeatFraction": 0.92
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.9999999999999998,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": true
+          },
+          "passed": true,
+          "reward": 1.9999999999999998
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.7221104168236745,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": false
+          },
+          "passed": false,
+          "reward": -1
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 27.25,
+        "pinCount": 2,
+        "travelMm": 9,
+        "minSeatFraction": 0.6
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 135.41797753346276,
+          "minEndSeatFraction": 0.8567827080258302,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": true
+          },
+          "passed": false,
+          "reward": -1
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.7842362944281004,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": true
+          },
+          "passed": true,
+          "reward": 1.7842362944281005
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 27.25,
+        "pinCount": 4,
+        "travelMm": 0,
+        "minSeatFraction": 0.72
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.9999999999999998,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": true
+          },
+          "passed": true,
+          "reward": 1.9999999999999998
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 50.26548245743669,
+          "minEndSeatFraction": 0.7221104168236745,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": true
+          },
+          "passed": false,
+          "reward": -1
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 27.25,
+        "pinCount": 4,
+        "travelMm": 9,
+        "minSeatFraction": 0.82
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 135.41797753346276,
+          "minEndSeatFraction": 0.8567827080258302,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": true
+          },
+          "passed": false,
+          "reward": -1
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 194.2654824574367,
+          "minEndSeatFraction": 0.7842362944281004,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": false
+          },
+          "passed": false,
+          "reward": -1
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 28.25,
+        "pinCount": 2,
+        "travelMm": 0,
+        "minSeatFraction": 0.6
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.9999999999999998,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": true
+          },
+          "passed": true,
+          "reward": 1.9999999999999998
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.7221104168236745,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": true
+          },
+          "passed": true,
+          "reward": 1.7221104168236745
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 28.25,
+        "pinCount": 2,
+        "travelMm": 4,
+        "minSeatFraction": 0.72
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 55.41797753346276,
+          "minEndSeatFraction": 0.8660002823862385,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": true
+          },
+          "passed": false,
+          "reward": -1
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.7845461831679151,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": true
+          },
+          "passed": true,
+          "reward": 1.7845461831679152
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 28.25,
+        "pinCount": 4,
+        "travelMm": 0,
+        "minSeatFraction": 0.82
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.9999999999999998,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": true
+          },
+          "passed": true,
+          "reward": 1.9999999999999998
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 50.26548245743669,
+          "minEndSeatFraction": 0.7221104168236745,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": false
+          },
+          "passed": false,
+          "reward": -1
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 28.25,
+        "pinCount": 4,
+        "travelMm": 4,
+        "minSeatFraction": 0.92
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 55.41797753346276,
+          "minEndSeatFraction": 0.8660002823862385,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": false
+          },
+          "passed": false,
+          "reward": -1
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 114.26548245743668,
+          "minEndSeatFraction": 0.7845461831679151,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": false
+          },
+          "passed": false,
+          "reward": -1
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 29.25,
+        "pinCount": 2,
+        "travelMm": 0,
+        "minSeatFraction": 0.72
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.9999999999999998,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": true
+          },
+          "passed": true,
+          "reward": 1.9999999999999998
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.7221104168236745,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": true
+          },
+          "passed": true,
+          "reward": 1.7221104168236745
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 29.25,
+        "pinCount": 2,
+        "travelMm": 5,
+        "minSeatFraction": 0.82
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 71.41797753346276,
+          "minEndSeatFraction": 0.8361787322833881,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": true
+          },
+          "passed": false,
+          "reward": -1
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.7842362944280997,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": false
+          },
+          "passed": false,
+          "reward": -1
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 29.25,
+        "pinCount": 4,
+        "travelMm": 0,
+        "minSeatFraction": 0.92
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.9999999999999998,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": true
+          },
+          "passed": true,
+          "reward": 1.9999999999999998
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 50.26548245743669,
+          "minEndSeatFraction": 0.7221104168236745,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": false
+          },
+          "passed": false,
+          "reward": -1
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 29.25,
+        "pinCount": 4,
+        "travelMm": 5,
+        "minSeatFraction": 0.6
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 71.41797753346276,
+          "minEndSeatFraction": 0.8361787322833881,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": true
+          },
+          "passed": false,
+          "reward": -1
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 130.2654824574367,
+          "minEndSeatFraction": 0.7842362944280997,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": true
+          },
+          "passed": false,
+          "reward": -1
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 30.25,
+        "pinCount": 2,
+        "travelMm": 0,
+        "minSeatFraction": 0.82
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.9999999999999998,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": true
+          },
+          "passed": true,
+          "reward": 1.9999999999999998
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.7221104168236745,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": false
+          },
+          "passed": false,
+          "reward": -1
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 30.25,
+        "pinCount": 2,
+        "travelMm": 6,
+        "minSeatFraction": 0.92
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 87.41797753346276,
+          "minEndSeatFraction": 0.8141784905575536,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": false
+          },
+          "passed": false,
+          "reward": -1
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.7842362944280997,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": false
+          },
+          "passed": false,
+          "reward": -1
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 30.25,
+        "pinCount": 4,
+        "travelMm": 0,
+        "minSeatFraction": 0.6
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.9999999999999998,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": true
+          },
+          "passed": true,
+          "reward": 1.9999999999999998
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 50.26548245743669,
+          "minEndSeatFraction": 0.7221104168236745,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": true
+          },
+          "passed": false,
+          "reward": -1
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 30.25,
+        "pinCount": 4,
+        "travelMm": 6,
+        "minSeatFraction": 0.72
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 87.41797753346276,
+          "minEndSeatFraction": 0.8141784905575534,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": true
+          },
+          "passed": false,
+          "reward": -1
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 146.2654824574367,
+          "minEndSeatFraction": 0.7842362944280997,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": true
+          },
+          "passed": false,
+          "reward": -1
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 31.25,
+        "pinCount": 2,
+        "travelMm": 0,
+        "minSeatFraction": 0.92
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.9999999999999998,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": true
+          },
+          "passed": true,
+          "reward": 1.9999999999999998
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.7221104168236745,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": false
+          },
+          "passed": false,
+          "reward": -1
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 31.25,
+        "pinCount": 2,
+        "travelMm": 7,
+        "minSeatFraction": 0.6
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 103.41797753346275,
+          "minEndSeatFraction": 0.8160713764102563,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": true
+          },
+          "passed": false,
+          "reward": -1
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.7842362944280997,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": true
+          },
+          "passed": true,
+          "reward": 1.7842362944280996
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 31.25,
+        "pinCount": 4,
+        "travelMm": 0,
+        "minSeatFraction": 0.72
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.9999999999999998,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": true
+          },
+          "passed": true,
+          "reward": 1.9999999999999998
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 50.26548245743669,
+          "minEndSeatFraction": 0.7221104168236745,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": true
+          },
+          "passed": false,
+          "reward": -1
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 31.25,
+        "pinCount": 4,
+        "travelMm": 7,
+        "minSeatFraction": 0.82
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 103.41797753346275,
+          "minEndSeatFraction": 0.8160713764102563,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": false
+          },
+          "passed": false,
+          "reward": -1
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 162.2654824574367,
+          "minEndSeatFraction": 0.7842362944280997,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": false
+          },
+          "passed": false,
+          "reward": -1
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 32.25,
+        "pinCount": 2,
+        "travelMm": 0,
+        "minSeatFraction": 0.6
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.9999999999999998,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": true
+          },
+          "passed": true,
+          "reward": 1.9999999999999998
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.7221104168236745,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": true
+          },
+          "passed": true,
+          "reward": 1.7221104168236745
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 32.25,
+        "pinCount": 2,
+        "travelMm": 8,
+        "minSeatFraction": 0.72
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 119.41797753346276,
+          "minEndSeatFraction": 0.8301472917094287,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": true
+          },
+          "passed": false,
+          "reward": -1
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.7842362944280997,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": true
+          },
+          "passed": true,
+          "reward": 1.7842362944280996
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 32.25,
+        "pinCount": 4,
+        "travelMm": 0,
+        "minSeatFraction": 0.82
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.9999999999999998,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": true
+          },
+          "passed": true,
+          "reward": 1.9999999999999998
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 50.26548245743669,
+          "minEndSeatFraction": 0.7221104168236745,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": false
+          },
+          "passed": false,
+          "reward": -1
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 32.25,
+        "pinCount": 4,
+        "travelMm": 8,
+        "minSeatFraction": 0.92
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 119.41797753346276,
+          "minEndSeatFraction": 0.830147291709428,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": false
+          },
+          "passed": false,
+          "reward": -1
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 178.26548245743666,
+          "minEndSeatFraction": 0.7842362944280997,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": false
+          },
+          "passed": false,
+          "reward": -1
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 33.25,
+        "pinCount": 2,
+        "travelMm": 0,
+        "minSeatFraction": 0.72
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.9999999999999998,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": true
+          },
+          "passed": true,
+          "reward": 1.9999999999999998
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.7221104168236745,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": true
+          },
+          "passed": true,
+          "reward": 1.7221104168236745
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 33.25,
+        "pinCount": 2,
+        "travelMm": 9,
+        "minSeatFraction": 0.82
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 135.41797753346276,
+          "minEndSeatFraction": 0.8567827080258301,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": true
+          },
+          "passed": false,
+          "reward": -1
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.7842362944280997,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": false
+          },
+          "passed": false,
+          "reward": -1
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 33.25,
+        "pinCount": 4,
+        "travelMm": 0,
+        "minSeatFraction": 0.92
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.9999999999999998,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": true
+          },
+          "passed": true,
+          "reward": 1.9999999999999998
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 50.26548245743669,
+          "minEndSeatFraction": 0.7221104168236745,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": false
+          },
+          "passed": false,
+          "reward": -1
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 33.25,
+        "pinCount": 4,
+        "travelMm": 9,
+        "minSeatFraction": 0.6
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 135.41797753346276,
+          "minEndSeatFraction": 0.8567827080258301,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": true
+          },
+          "passed": false,
+          "reward": -1
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 194.2654824574367,
+          "minEndSeatFraction": 0.7842362944280997,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": true
+          },
+          "passed": false,
+          "reward": -1
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 34.25,
+        "pinCount": 2,
+        "travelMm": 0,
+        "minSeatFraction": 0.82
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.9999999999999998,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": true
+          },
+          "passed": true,
+          "reward": 1.9999999999999998
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.7221104168236745,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": false
+          },
+          "passed": false,
+          "reward": -1
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 34.25,
+        "pinCount": 2,
+        "travelMm": 4,
+        "minSeatFraction": 0.92
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 55.41797753346276,
+          "minEndSeatFraction": 0.8660002823862383,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": false
+          },
+          "passed": false,
+          "reward": -1
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.784546183167915,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": false
+          },
+          "passed": false,
+          "reward": -1
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 34.25,
+        "pinCount": 4,
+        "travelMm": 0,
+        "minSeatFraction": 0.6
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.9999999999999998,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": true
+          },
+          "passed": true,
+          "reward": 1.9999999999999998
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 50.26548245743669,
+          "minEndSeatFraction": 0.7221104168236745,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": true
+          },
+          "passed": false,
+          "reward": -1
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 34.25,
+        "pinCount": 4,
+        "travelMm": 4,
+        "minSeatFraction": 0.72
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 55.41797753346276,
+          "minEndSeatFraction": 0.8660002823862383,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": true
+          },
+          "passed": false,
+          "reward": -1
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 114.26548245743668,
+          "minEndSeatFraction": 0.784546183167915,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": true
+          },
+          "passed": false,
+          "reward": -1
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 35.25,
+        "pinCount": 2,
+        "travelMm": 0,
+        "minSeatFraction": 0.92
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.9999999999999998,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": true
+          },
+          "passed": true,
+          "reward": 1.9999999999999998
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.7221104168236745,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": false
+          },
+          "passed": false,
+          "reward": -1
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 35.25,
+        "pinCount": 2,
+        "travelMm": 5,
+        "minSeatFraction": 0.6
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 71.41797753346276,
+          "minEndSeatFraction": 0.8361787322833876,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": true
+          },
+          "passed": false,
+          "reward": -1
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.7842362944280997,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": true
+          },
+          "passed": true,
+          "reward": 1.7842362944280996
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 35.25,
+        "pinCount": 4,
+        "travelMm": 0,
+        "minSeatFraction": 0.72
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.9999999999999998,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": true
+          },
+          "passed": true,
+          "reward": 1.9999999999999998
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 50.26548245743669,
+          "minEndSeatFraction": 0.7221104168236745,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": true
+          },
+          "passed": false,
+          "reward": -1
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 35.25,
+        "pinCount": 4,
+        "travelMm": 5,
+        "minSeatFraction": 0.82
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 71.41797753346276,
+          "minEndSeatFraction": 0.8361787322833876,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": true
+          },
+          "passed": false,
+          "reward": -1
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 130.2654824574367,
+          "minEndSeatFraction": 0.7842362944280997,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": false
+          },
+          "passed": false,
+          "reward": -1
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 36.25,
+        "pinCount": 2,
+        "travelMm": 0,
+        "minSeatFraction": 0.6
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.9999999999999998,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": true
+          },
+          "passed": true,
+          "reward": 1.9999999999999998
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.7221104168236745,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": true
+          },
+          "passed": true,
+          "reward": 1.7221104168236745
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 36.25,
+        "pinCount": 2,
+        "travelMm": 6,
+        "minSeatFraction": 0.72
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 87.41797753346276,
+          "minEndSeatFraction": 0.814178490557554,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": true
+          },
+          "passed": false,
+          "reward": -1
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.7842362944280997,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": true
+          },
+          "passed": true,
+          "reward": 1.7842362944280996
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 36.25,
+        "pinCount": 4,
+        "travelMm": 0,
+        "minSeatFraction": 0.82
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.9999999999999998,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": true
+          },
+          "passed": true,
+          "reward": 1.9999999999999998
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 50.265482457436704,
+          "minEndSeatFraction": 0.7221104168236745,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": false
+          },
+          "passed": false,
+          "reward": -1
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 36.25,
+        "pinCount": 4,
+        "travelMm": 6,
+        "minSeatFraction": 0.92
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 87.41797753346276,
+          "minEndSeatFraction": 0.814178490557554,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": false
+          },
+          "passed": false,
+          "reward": -1
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 146.2654824574367,
+          "minEndSeatFraction": 0.7842362944280997,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": false
+          },
+          "passed": false,
+          "reward": -1
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 37.25,
+        "pinCount": 2,
+        "travelMm": 0,
+        "minSeatFraction": 0.72
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.9999999999999998,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": true
+          },
+          "passed": true,
+          "reward": 1.9999999999999998
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.7221104168236745,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": true
+          },
+          "passed": true,
+          "reward": 1.7221104168236745
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 37.25,
+        "pinCount": 2,
+        "travelMm": 7,
+        "minSeatFraction": 0.82
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 103.41797753346275,
+          "minEndSeatFraction": 0.8160713764102522,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": false
+          },
+          "passed": false,
+          "reward": -1
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.7842362944280997,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": false
+          },
+          "passed": false,
+          "reward": -1
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 37.25,
+        "pinCount": 4,
+        "travelMm": 0,
+        "minSeatFraction": 0.92
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.9999999999999998,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": true
+          },
+          "passed": true,
+          "reward": 1.9999999999999998
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 50.265482457436704,
+          "minEndSeatFraction": 0.7221104168236745,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": false
+          },
+          "passed": false,
+          "reward": -1
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 37.25,
+        "pinCount": 4,
+        "travelMm": 7,
+        "minSeatFraction": 0.6
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 103.41797753346275,
+          "minEndSeatFraction": 0.8160713764102522,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": true
+          },
+          "passed": false,
+          "reward": -1
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 162.2654824574367,
+          "minEndSeatFraction": 0.7842362944280997,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": true
+          },
+          "passed": false,
+          "reward": -1
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 38.25,
+        "pinCount": 2,
+        "travelMm": 0,
+        "minSeatFraction": 0.82
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.9999999999999998,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": true
+          },
+          "passed": true,
+          "reward": 1.9999999999999998
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.7221104168236745,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": false
+          },
+          "passed": false,
+          "reward": -1
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 38.25,
+        "pinCount": 2,
+        "travelMm": 8,
+        "minSeatFraction": 0.92
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 119.41797753346276,
+          "minEndSeatFraction": 0.830147291709429,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": false
+          },
+          "passed": false,
+          "reward": -1
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.7842362944280997,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": false
+          },
+          "passed": false,
+          "reward": -1
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 38.25,
+        "pinCount": 4,
+        "travelMm": 0,
+        "minSeatFraction": 0.6
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.9999999999999998,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": true
+          },
+          "passed": true,
+          "reward": 1.9999999999999998
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 50.265482457436704,
+          "minEndSeatFraction": 0.7221104168236745,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": true
+          },
+          "passed": false,
+          "reward": -1
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 38.25,
+        "pinCount": 4,
+        "travelMm": 8,
+        "minSeatFraction": 0.72
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 119.41797753346276,
+          "minEndSeatFraction": 0.8301472917094287,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": true
+          },
+          "passed": false,
+          "reward": -1
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 178.26548245743666,
+          "minEndSeatFraction": 0.7842362944280997,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": true
+          },
+          "passed": false,
+          "reward": -1
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 39.25,
+        "pinCount": 2,
+        "travelMm": 0,
+        "minSeatFraction": 0.92
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.9999999999999998,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": true
+          },
+          "passed": true,
+          "reward": 1.9999999999999998
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.7221104168236745,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": false
+          },
+          "passed": false,
+          "reward": -1
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 39.25,
+        "pinCount": 2,
+        "travelMm": 9,
+        "minSeatFraction": 0.6
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 135.41797753346273,
+          "minEndSeatFraction": 0.8567827080258301,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": true
+          },
+          "passed": false,
+          "reward": -1
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.7842362944280997,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": true
+          },
+          "passed": true,
+          "reward": 1.7842362944280996
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 39.25,
+        "pinCount": 4,
+        "travelMm": 0,
+        "minSeatFraction": 0.72
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.9999999999999998,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": true
+          },
+          "passed": true,
+          "reward": 1.9999999999999998
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 50.265482457436704,
+          "minEndSeatFraction": 0.7221104168236745,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": true
+          },
+          "passed": false,
+          "reward": -1
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 39.25,
+        "pinCount": 4,
+        "travelMm": 9,
+        "minSeatFraction": 0.82
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 135.41797753346273,
+          "minEndSeatFraction": 0.8567827080258301,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": true
+          },
+          "passed": false,
+          "reward": -1
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 194.2654824574367,
+          "minEndSeatFraction": 0.7842362944280997,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": false
+          },
+          "passed": false,
+          "reward": -1
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 40.25,
+        "pinCount": 2,
+        "travelMm": 0,
+        "minSeatFraction": 0.6
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.9999999999999998,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": true
+          },
+          "passed": true,
+          "reward": 1.9999999999999998
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.7221104168236745,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": true
+          },
+          "passed": true,
+          "reward": 1.7221104168236745
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 40.25,
+        "pinCount": 2,
+        "travelMm": 4,
+        "minSeatFraction": 0.72
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 55.41797753346273,
+          "minEndSeatFraction": 0.8660002823862386,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": true
+          },
+          "passed": false,
+          "reward": -1
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.784546183167915,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": true
+          },
+          "passed": true,
+          "reward": 1.784546183167915
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 40.25,
+        "pinCount": 4,
+        "travelMm": 0,
+        "minSeatFraction": 0.82
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 0.0,
+          "minEndSeatFraction": 0.9999999999999998,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": true,
+            "clampingFootprint": true
+          },
+          "passed": true,
+          "reward": 1.9999999999999998
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 50.265482457436704,
+          "minEndSeatFraction": 0.7221104168236745,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": false
+          },
+          "passed": false,
+          "reward": -1
+        }
+      }
+    },
+    {
+      "task": {
+        "pitchMm": 40.25,
+        "pinCount": 4,
+        "travelMm": 4,
+        "minSeatFraction": 0.92
+      },
+      "attempts": {
+        "four_holes": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 55.41797753346273,
+          "minEndSeatFraction": 0.8660002823862386,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": false
+          },
+          "passed": false,
+          "reward": -1
+        },
+        "twin_slots": {
+          "oneValidSolid": true,
+          "maxPinSweepOverlapMm3": 114.26548245743668,
+          "minEndSeatFraction": 0.784546183167915,
+          "checks": {
+            "connectedSolid": true,
+            "pinPathClear": false,
+            "clampingFootprint": false
+          },
+          "passed": false,
+          "reward": -1
+        }
+      }
+    }
+  ],
+  "test": [
+    {
+      "task": {
+        "pitchMm": 16.75,
+        "pinCount": 2,
+        "travelMm": 0,
+        "minSeatFraction": 0.6
+      },
+      "old": {
+        "action": "four_holes",
+        "passed": true,
+        "reward": 2.0
+      },
+      "new": {
+        "action": "four_holes",
+        "passed": true,
+        "reward": 2.0
+      },
+      "feasible": true
+    },
+    {
+      "task": {
+        "pitchMm": 16.75,
+        "pinCount": 2,
+        "travelMm": 4,
+        "minSeatFraction": 0.72
+      },
+      "old": {
+        "action": "twin_slots",
+        "passed": true,
+        "reward": 1.7845461831679155
+      },
+      "new": {
+        "action": "twin_slots",
+        "passed": true,
+        "reward": 1.7845461831679155
+      },
+      "feasible": true
+    },
+    {
+      "task": {
+        "pitchMm": 16.75,
+        "pinCount": 4,
+        "travelMm": 0,
+        "minSeatFraction": 0.82
+      },
+      "old": {
+        "action": "four_holes",
+        "passed": true,
+        "reward": 1.9999999999999996
+      },
+      "new": {
+        "action": "four_holes",
+        "passed": true,
+        "reward": 1.9999999999999996
+      },
+      "feasible": true
+    },
+    {
+      "task": {
+        "pitchMm": 16.75,
+        "pinCount": 4,
+        "travelMm": 4,
+        "minSeatFraction": 0.92
+      },
+      "old": {
+        "action": "four_holes",
+        "passed": false,
+        "reward": -1
+      },
+      "new": {
+        "action": "four_holes",
+        "passed": false,
+        "reward": -1
+      },
+      "feasible": false
+    },
+    {
+      "task": {
+        "pitchMm": 17.75,
+        "pinCount": 2,
+        "travelMm": 0,
+        "minSeatFraction": 0.72
+      },
+      "old": {
+        "action": "four_holes",
+        "passed": true,
+        "reward": 2.0
+      },
+      "new": {
+        "action": "four_holes",
+        "passed": true,
+        "reward": 2.0
+      },
+      "feasible": true
+    },
+    {
+      "task": {
+        "pitchMm": 17.75,
+        "pinCount": 2,
+        "travelMm": 5,
+        "minSeatFraction": 0.82
+      },
+      "old": {
+        "action": "four_holes",
+        "passed": false,
+        "reward": -1
+      },
+      "new": {
+        "action": "four_holes",
+        "passed": false,
+        "reward": -1
+      },
+      "feasible": false
+    },
+    {
+      "task": {
+        "pitchMm": 17.75,
+        "pinCount": 4,
+        "travelMm": 0,
+        "minSeatFraction": 0.92
+      },
+      "old": {
+        "action": "four_holes",
+        "passed": true,
+        "reward": 1.9999999999999996
+      },
+      "new": {
+        "action": "four_holes",
+        "passed": true,
+        "reward": 1.9999999999999996
+      },
+      "feasible": true
+    },
+    {
+      "task": {
+        "pitchMm": 17.75,
+        "pinCount": 4,
+        "travelMm": 5,
+        "minSeatFraction": 0.6
+      },
+      "old": {
+        "action": "four_holes",
+        "passed": false,
+        "reward": -1
+      },
+      "new": {
+        "action": "four_holes",
+        "passed": false,
+        "reward": -1
+      },
+      "feasible": false
+    },
+    {
+      "task": {
+        "pitchMm": 18.75,
+        "pinCount": 2,
+        "travelMm": 0,
+        "minSeatFraction": 0.82
+      },
+      "old": {
+        "action": "four_holes",
+        "passed": true,
+        "reward": 2.0
+      },
+      "new": {
+        "action": "four_holes",
+        "passed": true,
+        "reward": 2.0
+      },
+      "feasible": true
+    },
+    {
+      "task": {
+        "pitchMm": 18.75,
+        "pinCount": 2,
+        "travelMm": 6,
+        "minSeatFraction": 0.92
+      },
+      "old": {
+        "action": "four_holes",
+        "passed": false,
+        "reward": -1
+      },
+      "new": {
+        "action": "four_holes",
+        "passed": false,
+        "reward": -1
+      },
+      "feasible": false
+    },
+    {
+      "task": {
+        "pitchMm": 18.75,
+        "pinCount": 4,
+        "travelMm": 0,
+        "minSeatFraction": 0.6
+      },
+      "old": {
+        "action": "four_holes",
+        "passed": true,
+        "reward": 1.9999999999999996
+      },
+      "new": {
+        "action": "four_holes",
+        "passed": true,
+        "reward": 1.9999999999999996
+      },
+      "feasible": true
+    },
+    {
+      "task": {
+        "pitchMm": 18.75,
+        "pinCount": 4,
+        "travelMm": 6,
+        "minSeatFraction": 0.72
+      },
+      "old": {
+        "action": "four_holes",
+        "passed": false,
+        "reward": -1
+      },
+      "new": {
+        "action": "four_holes",
+        "passed": false,
+        "reward": -1
+      },
+      "feasible": false
+    },
+    {
+      "task": {
+        "pitchMm": 19.75,
+        "pinCount": 2,
+        "travelMm": 0,
+        "minSeatFraction": 0.92
+      },
+      "old": {
+        "action": "four_holes",
+        "passed": true,
+        "reward": 2.0
+      },
+      "new": {
+        "action": "four_holes",
+        "passed": true,
+        "reward": 2.0
+      },
+      "feasible": true
+    },
+    {
+      "task": {
+        "pitchMm": 19.75,
+        "pinCount": 2,
+        "travelMm": 7,
+        "minSeatFraction": 0.6
+      },
+      "old": {
+        "action": "twin_slots",
+        "passed": true,
+        "reward": 1.784236294428101
+      },
+      "new": {
+        "action": "twin_slots",
+        "passed": true,
+        "reward": 1.784236294428101
+      },
+      "feasible": true
+    },
+    {
+      "task": {
+        "pitchMm": 19.75,
+        "pinCount": 4,
+        "travelMm": 0,
+        "minSeatFraction": 0.72
+      },
+      "old": {
+        "action": "four_holes",
+        "passed": true,
+        "reward": 1.9999999999999996
+      },
+      "new": {
+        "action": "four_holes",
+        "passed": true,
+        "reward": 1.9999999999999996
+      },
+      "feasible": true
+    },
+    {
+      "task": {
+        "pitchMm": 19.75,
+        "pinCount": 4,
+        "travelMm": 7,
+        "minSeatFraction": 0.82
+      },
+      "old": {
+        "action": "four_holes",
+        "passed": false,
+        "reward": -1
+      },
+      "new": {
+        "action": "four_holes",
+        "passed": false,
+        "reward": -1
+      },
+      "feasible": false
+    },
+    {
+      "task": {
+        "pitchMm": 20.75,
+        "pinCount": 2,
+        "travelMm": 0,
+        "minSeatFraction": 0.6
+      },
+      "old": {
+        "action": "four_holes",
+        "passed": true,
+        "reward": 1.9999999999999998
+      },
+      "new": {
+        "action": "four_holes",
+        "passed": true,
+        "reward": 1.9999999999999998
+      },
+      "feasible": true
+    },
+    {
+      "task": {
+        "pitchMm": 20.75,
+        "pinCount": 2,
+        "travelMm": 8,
+        "minSeatFraction": 0.72
+      },
+      "old": {
+        "action": "twin_slots",
+        "passed": true,
+        "reward": 1.784236294428101
+      },
+      "new": {
+        "action": "twin_slots",
+        "passed": true,
+        "reward": 1.784236294428101
+      },
+      "feasible": true
+    },
+    {
+      "task": {
+        "pitchMm": 20.75,
+        "pinCount": 4,
+        "travelMm": 0,
+        "minSeatFraction": 0.82
+      },
+      "old": {
+        "action": "four_holes",
+        "passed": true,
+        "reward": 1.9999999999999998
+      },
+      "new": {
+        "action": "four_holes",
+        "passed": true,
+        "reward": 1.9999999999999998
+      },
+      "feasible": true
+    },
+    {
+      "task": {
+        "pitchMm": 20.75,
+        "pinCount": 4,
+        "travelMm": 8,
+        "minSeatFraction": 0.92
+      },
+      "old": {
+        "action": "four_holes",
+        "passed": false,
+        "reward": -1
+      },
+      "new": {
+        "action": "four_holes",
+        "passed": false,
+        "reward": -1
+      },
+      "feasible": false
+    },
+    {
+      "task": {
+        "pitchMm": 21.75,
+        "pinCount": 2,
+        "travelMm": 0,
+        "minSeatFraction": 0.72
+      },
+      "old": {
+        "action": "four_holes",
+        "passed": true,
+        "reward": 1.9999999999999998
+      },
+      "new": {
+        "action": "four_holes",
+        "passed": true,
+        "reward": 1.9999999999999998
+      },
+      "feasible": true
+    },
+    {
+      "task": {
+        "pitchMm": 21.75,
+        "pinCount": 2,
+        "travelMm": 9,
+        "minSeatFraction": 0.82
+      },
+      "old": {
+        "action": "four_holes",
+        "passed": false,
+        "reward": -1
+      },
+      "new": {
+        "action": "four_holes",
+        "passed": false,
+        "reward": -1
+      },
+      "feasible": false
+    },
+    {
+      "task": {
+        "pitchMm": 21.75,
+        "pinCount": 4,
+        "travelMm": 0,
+        "minSeatFraction": 0.92
+      },
+      "old": {
+        "action": "four_holes",
+        "passed": true,
+        "reward": 1.9999999999999998
+      },
+      "new": {
+        "action": "four_holes",
+        "passed": true,
+        "reward": 1.9999999999999998
+      },
+      "feasible": true
+    },
+    {
+      "task": {
+        "pitchMm": 21.75,
+        "pinCount": 4,
+        "travelMm": 9,
+        "minSeatFraction": 0.6
+      },
+      "old": {
+        "action": "four_holes",
+        "passed": false,
+        "reward": -1
+      },
+      "new": {
+        "action": "four_holes",
+        "passed": false,
+        "reward": -1
+      },
+      "feasible": false
+    },
+    {
+      "task": {
+        "pitchMm": 22.75,
+        "pinCount": 2,
+        "travelMm": 0,
+        "minSeatFraction": 0.82
+      },
+      "old": {
+        "action": "four_holes",
+        "passed": true,
+        "reward": 1.9999999999999998
+      },
+      "new": {
+        "action": "four_holes",
+        "passed": true,
+        "reward": 1.9999999999999998
+      },
+      "feasible": true
+    },
+    {
+      "task": {
+        "pitchMm": 22.75,
+        "pinCount": 2,
+        "travelMm": 4,
+        "minSeatFraction": 0.92
+      },
+      "old": {
+        "action": "four_holes",
+        "passed": false,
+        "reward": -1
+      },
+      "new": {
+        "action": "four_holes",
+        "passed": false,
+        "reward": -1
+      },
+      "feasible": false
+    },
+    {
+      "task": {
+        "pitchMm": 22.75,
+        "pinCount": 4,
+        "travelMm": 0,
+        "minSeatFraction": 0.6
+      },
+      "old": {
+        "action": "four_holes",
+        "passed": true,
+        "reward": 1.9999999999999998
+      },
+      "new": {
+        "action": "four_holes",
+        "passed": true,
+        "reward": 1.9999999999999998
+      },
+      "feasible": true
+    },
+    {
+      "task": {
+        "pitchMm": 22.75,
+        "pinCount": 4,
+        "travelMm": 4,
+        "minSeatFraction": 0.72
+      },
+      "old": {
+        "action": "four_holes",
+        "passed": false,
+        "reward": -1
+      },
+      "new": {
+        "action": "four_holes",
+        "passed": false,
+        "reward": -1
+      },
+      "feasible": false
+    },
+    {
+      "task": {
+        "pitchMm": 23.75,
+        "pinCount": 2,
+        "travelMm": 0,
+        "minSeatFraction": 0.92
+      },
+      "old": {
+        "action": "four_holes",
+        "passed": true,
+        "reward": 1.9999999999999998
+      },
+      "new": {
+        "action": "four_holes",
+        "passed": true,
+        "reward": 1.9999999999999998
+      },
+      "feasible": true
+    },
+    {
+      "task": {
+        "pitchMm": 23.75,
+        "pinCount": 2,
+        "travelMm": 5,
+        "minSeatFraction": 0.6
+      },
+      "old": {
+        "action": "twin_slots",
+        "passed": true,
+        "reward": 1.784236294428101
+      },
+      "new": {
+        "action": "twin_slots",
+        "passed": true,
+        "reward": 1.784236294428101
+      },
+      "feasible": true
+    },
+    {
+      "task": {
+        "pitchMm": 23.75,
+        "pinCount": 4,
+        "travelMm": 0,
+        "minSeatFraction": 0.72
+      },
+      "old": {
+        "action": "four_holes",
+        "passed": true,
+        "reward": 1.9999999999999998
+      },
+      "new": {
+        "action": "four_holes",
+        "passed": true,
+        "reward": 1.9999999999999998
+      },
+      "feasible": true
+    },
+    {
+      "task": {
+        "pitchMm": 23.75,
+        "pinCount": 4,
+        "travelMm": 5,
+        "minSeatFraction": 0.82
+      },
+      "old": {
+        "action": "four_holes",
+        "passed": false,
+        "reward": -1
+      },
+      "new": {
+        "action": "four_holes",
+        "passed": false,
+        "reward": -1
+      },
+      "feasible": false
+    }
+  ]
+}

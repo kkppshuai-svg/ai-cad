@@ -83,6 +83,8 @@ CadQuery 会从 `message` 中识别由 FBS 追踪的包络、挠度或应力要�
 
 `mount_fixture` 的 `fixture` 对象使用结构训练示例中的孔距、销数、行程和有效压紧面积比例。CadQuery 构建时使用当前修订已定位的实体复验。适用范围为板面在 Z=±2 mm、销沿 X 相对平移的指定夹具。[夹具定义](../examples/rl-adjustable-mount.json)
 
+`POST /api/chat` 的 `message` 可使用 `/安装板` 加夹具 JSON，返回 `exploration.attempts` 中两种结构的验证结果。存在合格候选时，响应还包含已构建的 `assembly` 和 `plan`。工作台现有评分入口按装配及修订绑定人工反馈。
+
 ### 停止当前规划
 
 ```json
